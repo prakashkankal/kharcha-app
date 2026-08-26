@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface-bright: #faf8ff;
+  --color-surface: #faf8ff;
+  --color-background: #faf8ff;
+  --color-on-background: #131b2e;
+  --color-on-surface: #131b2e;
+  --color-on-surface-variant: #434655;
+  --color-primary: #004ac6;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #2563eb;
+  --color-primary-fixed-dim: #b4c5ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f3ff;
+  --color-surface-container: #eaedff;
+  --color-surface-container-high: #e2e7ff;
+  --color-surface-container-highest: #dae2fd;
+  --color-outline: #737686;
+  --color-outline-variant: #c3c6d7;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+  --color-secondary: #006c49;
+  --color-secondary-container: #6cf8bb;
+  --color-on-secondary-container: #00714d;
+  --color-tertiary: #943700;
+  --color-tertiary-container: #bc4800;
+
+  --font-display: 'Hanken Grotesk', sans-serif;
+  --font-headline-lg: 'Hanken Grotesk', sans-serif;
+  --font-headline-lg-mobile: 'Hanken Grotesk', sans-serif;
+  --font-title-md: 'Hanken Grotesk', sans-serif;
+  --font-body-lg: 'Hanken Grotesk', sans-serif;
+  --font-body-sm: 'Hanken Grotesk', sans-serif;
+  --font-label-caps: 'Hanken Grotesk', sans-serif;
+  --font-numeric-display: 'Hanken Grotesk', sans-serif;
+
+  --spacing-container-margin: 20px;
+  --spacing-gutter: 16px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+:root {
+  font-family: 'Hanken Grotesk', sans-serif;
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-surface-bright: #1b2234;
+  --color-surface: #0f172a;
+  --color-background: #0b1120;
+  --color-on-background: #f1f5f9;
+  --color-on-surface: #f1f5f9;
+  --color-on-surface-variant: #94a3b8;
+  --color-surface-container-lowest: #1e293b;
+  --color-surface-container-low: #1e293b;
+  --color-surface-container: #334155;
+  --color-surface-container-high: #475569;
+  --color-surface-container-highest: #64748b;
+  --color-outline: #64748b;
+  --color-outline-variant: #334155;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Hanken Grotesk', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.icon-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
