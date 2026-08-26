@@ -26,15 +26,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const uploadsPath = path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsPath));
 
-// Routes
+// Routes (supports both /api/* and direct /* endpoints)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
+
 app.use('/api/expenses', expenseRoutes);
+app.use('/expenses', expenseRoutes);
+
 app.use('/api/profile', profileRoutes);
+app.use('/profile', profileRoutes);
+
 app.use('/api/backup', backupRoutes);
+app.use('/backup', backupRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'OK', message: 'Kharcha API server is running smooth' });
 });
 
