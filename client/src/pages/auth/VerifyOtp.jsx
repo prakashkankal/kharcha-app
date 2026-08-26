@@ -117,7 +117,7 @@ export const VerifyOtp = () => {
         {/* Header */}
         <header class="text-center flex flex-col gap-2">
           <div class="flex justify-center items-center gap-2 mb-1">
-            <span class="material-symbols-outlined text-primary text-[36px]">account_balance_wallet</span>
+            <img src="/logo.png" alt="Kharcha Logo" class="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <h1 class="font-display text-[28px] text-primary font-bold tracking-tight">Kharcha</h1>
           </div>
           <h2 class="font-headline-lg-mobile text-[22px] font-bold text-on-surface">Verify Email OTP</h2>

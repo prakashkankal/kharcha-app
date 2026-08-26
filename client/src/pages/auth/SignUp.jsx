@@ -84,7 +84,7 @@ export const SignUp = () => {
       <main class="w-full max-w-[400px] bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-8 shadow-sm flex flex-col">
         <header class="text-center mb-6">
           <div class="flex justify-center items-center gap-2 mb-2">
-            <span class="material-symbols-outlined text-primary text-[32px]">account_balance_wallet</span>
+            <img src="/logo.png" alt="Kharcha Logo" class="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <h1 class="font-display text-[28px] text-primary font-bold tracking-tight">Kharcha</h1>
           </div>
           <p class="font-body-lg text-body-lg text-on-surface-variant">Simple expense tracking.</p>

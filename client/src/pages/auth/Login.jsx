@@ -72,7 +72,7 @@ export const Login = () => {
         {/* Header Section */}
         <header class="text-center flex flex-col gap-2">
           <div class="flex justify-center items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-[36px]">account_balance_wallet</span>
+            <img src="/logo.png" alt="Kharcha Logo" class="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <h1 class="font-display text-[32px] text-primary font-bold tracking-tight">Kharcha</h1>
           </div>
           <p class="font-body-lg text-body-lg text-on-surface-variant">Simple expense tracking.</p>

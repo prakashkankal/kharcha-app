@@ -9,7 +9,7 @@ export const Navbar = () => {
     <header class="w-full bg-surface border-b border-outline-variant sticky top-0 z-40 shadow-xs">
       <div class="w-full max-w-[1024px] mx-auto flex items-center justify-between px-container-margin h-14">
         <Link to="/add-expense" class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-[28px]">account_balance_wallet</span>
+          <img src="/logo.png" alt="Kharcha Logo" class="w-8 h-8 rounded-lg object-cover shadow-xs" />
           <h1 class="font-title-md text-title-md text-primary font-bold tracking-tight">Kharcha</h1>
         </Link>
 
