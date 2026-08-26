@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { expenseApi } from '../services/expenseApi';
 import { useCategory } from '../context/CategoryContext';
+import { getReceiptUrl } from '../services/api';
 
 export const ExpenseDetails = () => {
   const { id } = useParams();
@@ -238,7 +239,7 @@ export const ExpenseDetails = () => {
               </label>
               {expense.receiptUrl && !receiptPreview && (
                 <div class="mb-2 flex items-center gap-3">
-                  <img src={expense.receiptUrl} alt="Receipt" class="w-16 h-16 object-cover rounded border" />
+                  <img src={getReceiptUrl(expense.receiptUrl)} alt="Receipt" class="w-16 h-16 object-cover rounded border" />
                   <button
                     type="button"
                     onClick={handleRemoveReceipt}
@@ -356,7 +357,7 @@ export const ExpenseDetails = () => {
                     class="relative w-full aspect-[3/4] bg-surface-container-low rounded-lg overflow-hidden border border-outline-variant group cursor-pointer mb-3"
                   >
                     <img
-                      src={expense.receiptUrl}
+                      src={getReceiptUrl(expense.receiptUrl)}
                       alt="Receipt"
                       class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                     />
@@ -443,7 +444,7 @@ export const ExpenseDetails = () => {
           class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-pointer"
         >
           <div class="relative max-w-3xl max-h-[90vh]">
-            <img src={expense?.receiptUrl} alt="Receipt Fullscreen" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+            <img src={getReceiptUrl(expense?.receiptUrl)} alt="Receipt Fullscreen" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
             <button
               onClick={() => setShowImageZoom(false)}
               class="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black"

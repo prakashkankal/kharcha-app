@@ -3,6 +3,15 @@ const API_BASE_URL = rawApiUrl.endsWith('/api')
   ? rawApiUrl
   : `${rawApiUrl.replace(/\/+$/, '')}/api`;
 
+export const getReceiptUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const backendHost = API_BASE_URL.replace(/\/api\/?$/, '');
+  return `${backendHost}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 export const getAuthToken = () => {
   return localStorage.getItem('kharcha_token');
 };
