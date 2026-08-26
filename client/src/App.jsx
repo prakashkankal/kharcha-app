@@ -10,28 +10,34 @@ import { ExpenseDetails } from './pages/ExpenseDetails';
 import { Profile } from './pages/Profile';
 import { Categories } from './pages/Categories';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import { InstallPwaPrompt } from './components/InstallPwaPrompt';
 
 export function App() {
   return (
-    <Routes>
-      {/* Public Unauthenticated Routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
+    <>
+      <Routes>
+        {/* Public Unauthenticated Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
 
-      {/* Protected Authenticated Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/add-expense" element={<AddExpense />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/expense/:id" element={<ExpenseDetails />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/categories" element={<Categories />} />
-      </Route>
+        {/* Protected Authenticated Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/add-expense" element={<AddExpense />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/expense/:id" element={<ExpenseDetails />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/categories" element={<Categories />} />
+        </Route>
 
-      {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to="/add-expense" replace />} />
-    </Routes>
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/add-expense" replace />} />
+      </Routes>
+
+      {/* PWA Mobile Install Banner */}
+      <InstallPwaPrompt />
+    </>
   );
 }
 
