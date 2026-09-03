@@ -239,7 +239,7 @@ export const Analytics = () => {
   const canGoNext = offset < 0;
 
   return (
-    <div class="w-full max-w-[1024px] mx-auto space-y-6 pb-8">
+    <div class="w-full max-w-[1024px] mx-auto min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-8">
       <title>Analytics – Kharcha</title>
 
       {/* Period Toggle */}
@@ -303,10 +303,10 @@ export const Analytics = () => {
       </div>
 
       {/* Swipeable chart cards */}
-      <div class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 -mx-container-margin px-container-margin md:mx-0 md:px-0">
+      <div class="flex flex-1 items-stretch overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 -mx-container-margin px-container-margin md:mx-0 md:px-0">
       {/* Bar Chart */}
-      <div class="w-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-6 shadow-xs">
-        <h2 class="font-semibold text-on-surface mb-4 text-[15px]">
+      <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
+        <h2 class="font-semibold text-on-surface mb-2 text-[15px]">
           {period === 'week' ? 'Daily Spending This Week' : period === 'month' ? 'Weekly Spending This Month' : 'Monthly Spending This Year'}
         </h2>
         {loading ? (
@@ -319,8 +319,9 @@ export const Analytics = () => {
             <p class="text-sm">No expenses in this period</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={barData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barCategoryGap="30%">
+          <div class="flex-1 min-h-[220px] -mx-3 -mb-3 md:-mx-4 md:-mb-4">
+          <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData} margin={{ top: 0, right: 2, left: -16, bottom: 8 }} barCategoryGap="30%">
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant, #6b7280)' }}
@@ -340,15 +341,17 @@ export const Analytics = () => {
                   <Bar dataKey="total" fill="#6366f1" radius={[5, 5, 0, 0]} maxBarSize={40} />
                 </BarChart>
           </ResponsiveContainer>
+          </div>
         )}
       </div>
 
       {/* Pie Chart — Category Breakdown */}
       {pieData.length > 0 && (
-        <div class="w-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-6 shadow-xs">
-          <h2 class="font-semibold text-on-surface mb-4 text-[15px]">Spending by Category</h2>
-          <div class="flex flex-col md:flex-row items-center gap-4">
-            <ResponsiveContainer width="100%" height={220}>
+        <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
+          <h2 class="font-semibold text-on-surface mb-2 text-[15px]">Spending by Category</h2>
+          <div class="flex-1 min-h-[220px] flex flex-col md:flex-row items-center gap-4">
+            <div class="w-full h-full -mx-3 -mb-3 md:-mx-4 md:-mb-4">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={pieData}
@@ -366,6 +369,7 @@ export const Analytics = () => {
                 <Tooltip content={<CustomPieTooltip />} />
               </PieChart>
             </ResponsiveContainer>
+            </div>
           </div>
           {/* Category Legend List */}
           <ul class="mt-2 space-y-2">
@@ -390,10 +394,11 @@ export const Analytics = () => {
 
       {/* Line Trend (only year view — cumulative monthly) */}
       {period === 'year' && filteredExpenses.length > 0 && (
-        <div class="w-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-6 shadow-xs">
-          <h2 class="font-semibold text-on-surface mb-4 text-[15px]">Spending Trend</h2>
-          <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={barData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+        <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
+          <h2 class="font-semibold text-on-surface mb-2 text-[15px]">Spending Trend</h2>
+          <div class="flex-1 min-h-[200px] -mx-3 -mb-3 md:-mx-4 md:-mb-4">
+          <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={barData} margin={{ top: 0, right: 2, left: -16, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(156,163,175,0.15)" />
                   <XAxis
                     dataKey="label"
@@ -418,6 +423,7 @@ export const Analytics = () => {
                   />
                 </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
       )}
       </div>
