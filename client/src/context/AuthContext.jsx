@@ -1,47 +1,85 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/authApi';
 import { getAuthToken } from '../services/api';
+import { syncManager } from '../services/syncManager';
 
 const AuthContext = createContext();
 
+const LOCAL_USER_KEY = 'kharcha_cached_user';
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Read initial user synchronously from localStorage so UI opens in 0ms without waiting
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem(LOCAL_USER_KEY);
+      const token = getAuthToken();
+      if (token && cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached user:', e);
+    }
+    return null;
+  });
+
+  // If we already have a cached user and token, loading is false immediately
+  const [loading, setLoading] = useState(() => {
+    const token = getAuthToken();
+    const cached = localStorage.getItem(LOCAL_USER_KEY);
+    return token && cached ? false : false;
+  });
+
+  const persistUser = (userData) => {
+    setUser(userData);
+    if (userData) {
+      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(userData));
+    } else {
+      localStorage.removeItem(LOCAL_USER_KEY);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     const token = getAuthToken();
     if (!token) {
-      setUser(null);
+      persistUser(null);
       setLoading(false);
       return;
     }
 
     try {
       const data = await authApi.getMe();
-      setUser(data.user);
+      persistUser(data.user);
     } catch (error) {
-      console.error('Failed to fetch authenticated user:', error.message);
-      authApi.logout();
-      setUser(null);
+      console.warn('Silent user refresh failed (server may be starting up):', error.message);
+      // ONLY log out if the server explicitly tells us the token is invalid (401/403)
+      if (error.message && (error.message.includes('401') || error.message.includes('token') || error.message.includes('Unauthorized'))) {
+        authApi.logout();
+        persistUser(null);
+      }
+      // If it's a network/timeout error (Render waking up), KEEP cached user active!
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Start background sync manager
+    syncManager.init();
     fetchCurrentUser();
   }, []);
 
   const login = async (credentials) => {
     const data = await authApi.login(credentials);
-    setUser(data.user);
+    persistUser(data.user);
+    syncManager.checkServerAndSync();
     return data;
   };
 
   const register = async (userData) => {
     const data = await authApi.register(userData);
     if (data.user && !data.requireOtp) {
-      setUser(data.user);
+      persistUser(data.user);
+      syncManager.checkServerAndSync();
     }
     return data;
   };
@@ -49,7 +87,8 @@ export const AuthProvider = ({ children }) => {
   const verifyOtp = async (otpData) => {
     const data = await authApi.verifyOtp(otpData);
     if (data.user) {
-      setUser(data.user);
+      persistUser(data.user);
+      syncManager.checkServerAndSync();
     }
     return data;
   };
@@ -60,17 +99,22 @@ export const AuthProvider = ({ children }) => {
 
   const googleAuth = async (googleData) => {
     const data = await authApi.googleAuth(googleData);
-    setUser(data.user);
+    persistUser(data.user);
+    syncManager.checkServerAndSync();
     return data;
   };
 
   const logout = () => {
     authApi.logout();
-    setUser(null);
+    persistUser(null);
   };
 
   const updateUser = (updatedUser) => {
-    setUser((prev) => ({ ...prev, ...updatedUser }));
+    setUser((prev) => {
+      const nextUser = { ...prev, ...updatedUser };
+      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(nextUser));
+      return nextUser;
+    });
   };
 
   return (

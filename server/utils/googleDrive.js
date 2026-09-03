@@ -71,12 +71,18 @@ const getUserDriveClient = (user) => {
 };
 
 /**
- * Finds or creates a "Receipts" folder in user's personal Google Drive
+ * Finds or creates a subfolder inside a given parent folder in Google Drive
  */
-const getOrCreateReceiptsFolder = async (drive) => {
+const getOrCreateSubfolder = async (drive, folderName, parentFolderId = null) => {
   try {
+    const escapedName = folderName.replace(/'/g, "\\'");
+    let q = `mimeType='application/vnd.google-apps.folder' and name='${escapedName}' and trashed=false`;
+    if (parentFolderId) {
+      q += ` and '${parentFolderId}' in parents`;
+    }
+
     const response = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and name='Receipts' and trashed=false",
+      q,
       fields: 'files(id, name)',
       spaces: 'drive',
     });
@@ -85,10 +91,11 @@ const getOrCreateReceiptsFolder = async (drive) => {
       return response.data.files[0].id;
     }
 
-    // Create folder if it doesn't exist
+    // Create subfolder
     const folderMetadata = {
-      name: 'Receipts',
+      name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
+      parents: parentFolderId ? [parentFolderId] : [],
     };
 
     const folder = await drive.files.create({
@@ -98,15 +105,22 @@ const getOrCreateReceiptsFolder = async (drive) => {
 
     return folder.data.id;
   } catch (error) {
-    console.warn('Could not find or create Receipts folder in user Drive:', error.message);
+    console.warn(`Could not find or create '${folderName}' folder in Google Drive:`, error.message);
     return null;
   }
 };
 
 /**
- * Uploads a receipt image to user's personal Google Drive under the Receipts folder
+ * Finds or creates a "Receipts" folder in user's personal Google Drive
  */
-export const uploadFileToDrive = async (filePath, originalName, mimeType, user = null) => {
+const getOrCreateReceiptsFolder = async (drive) => {
+  return await getOrCreateSubfolder(drive, 'Receipts', null);
+};
+
+/**
+ * Uploads a receipt image to Google Drive under "Receipts / <CategoryName>" folder
+ */
+export const uploadFileToDrive = async (filePath, originalName, mimeType, user = null, categoryName = 'General') => {
   try {
     let drive = null;
 
@@ -124,15 +138,38 @@ export const uploadFileToDrive = async (filePath, originalName, mimeType, user =
       return null; // No Google Drive available
     }
 
-    // Find or create Receipts folder in drive
-    let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    if (!folderId) {
-      folderId = await getOrCreateReceiptsFolder(drive);
+    // 1. Find or create base "Receipts" folder
+    let receiptsFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    if (!receiptsFolderId) {
+      receiptsFolderId = await getOrCreateReceiptsFolder(drive);
     }
 
+    // 2. Find or create category-wise subfolder inside "Receipts" folder
+    const cleanCategoryName = (categoryName || 'General').trim();
+    let targetFolderId = receiptsFolderId;
+
+    if (receiptsFolderId && cleanCategoryName) {
+      const catFolderId = await getOrCreateSubfolder(drive, cleanCategoryName, receiptsFolderId);
+      if (catFolderId) {
+        targetFolderId = catFolderId;
+      }
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const dateFormatted = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+
+    // Extract file extension from original name
+    const ext = path.extname(originalName) || (mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg');
+
     const fileMetaData = {
-      name: `receipt_${Date.now()}_${originalName}`,
-      parents: folderId ? [folderId] : [],
+      name: `receipt_${dateFormatted}${ext}`,
+      parents: targetFolderId ? [targetFolderId] : [],
     };
 
     const media = {

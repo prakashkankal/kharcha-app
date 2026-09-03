@@ -99,7 +99,8 @@ export const createExpense = async (req, res, next) => {
 
     let receiptUrl = null;
     if (req.file) {
-      const driveUrl = await uploadFileToDrive(req.file.path, req.file.originalname, req.file.mimetype, req.user);
+      const categoryName = categoryExists?.name || 'General';
+      const driveUrl = await uploadFileToDrive(req.file.path, req.file.originalname, req.file.mimetype, req.user, categoryName);
       receiptUrl = driveUrl || `/uploads/${req.file.filename}`;
     }
 
@@ -139,9 +140,10 @@ export const updateExpense = async (req, res, next) => {
       expense.amount = parsedAmount;
     }
 
-    if (categoryId !== undefined) {
-      const categoryExists = await Category.findOne({ _id: categoryId, userId: req.user._id });
-      if (!categoryExists) {
+    let categoryObj = null;
+    if (categoryId) {
+      categoryObj = await Category.findOne({ _id: categoryId, userId: req.user._id });
+      if (!categoryObj) {
         return res.status(400).json({ message: 'Invalid category selected' });
       }
       expense.categoryId = categoryId;
@@ -173,7 +175,17 @@ export const updateExpense = async (req, res, next) => {
           fs.unlinkSync(oldPath);
         }
       }
-      const driveUrl = await uploadFileToDrive(req.file.path, req.file.originalname, req.file.mimetype, req.user);
+
+      // Resolve category name for drive folder
+      let catName = 'General';
+      if (categoryObj) {
+        catName = categoryObj.name;
+      } else if (expense.categoryId) {
+        const existingCat = await Category.findById(expense.categoryId);
+        if (existingCat) catName = existingCat.name;
+      }
+
+      const driveUrl = await uploadFileToDrive(req.file.path, req.file.originalname, req.file.mimetype, req.user, catName);
       expense.receiptUrl = driveUrl || `/uploads/${req.file.filename}`;
     }
 

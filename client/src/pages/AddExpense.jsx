@@ -67,18 +67,22 @@ export const AddExpense = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('amount', parsedAmount);
-      formData.append('categoryId', selectedCategory);
-      formData.append('date', date);
-      if (description) formData.append('description', description);
-      if (receiptFile) formData.append('receipt', receiptFile);
+      const categoryObj = categories.find((c) => c._id === selectedCategory);
 
-      await expenseApi.createExpense(formData);
+      // Instantly saves to device IndexedDB & enqueues for server sync
+      await expenseApi.createExpense({
+        amount: parsedAmount,
+        categoryId: selectedCategory,
+        categoryObj,
+        date,
+        description,
+        receiptFile,
+        receiptPreview,
+      });
 
-      setSuccessMsg('Expense added successfully!');
+      setSuccessMsg('Expense saved! (Stored locally & auto-syncs with server)');
 
-      // Reset form
+      // Reset form immediately
       setAmount('');
       setDescription('');
       setReceiptFile(null);
@@ -87,7 +91,7 @@ export const AddExpense = () => {
 
       setTimeout(() => {
         setSuccessMsg('');
-      }, 3000);
+      }, 4000);
     } catch (err) {
       setError(err.message || 'Failed to save expense');
     } finally {
@@ -97,7 +101,7 @@ export const AddExpense = () => {
 
   return (
     <div class="w-full max-w-[1024px] mx-auto pb-safe">
-      <div class="max-w-[640px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-8 shadow-xs">
+      <div class="max-w-[640px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-6 shadow-xs">
         {/* Feedback alerts */}
         {error && (
           <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
@@ -122,15 +126,15 @@ export const AddExpense = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} class="space-y-6 flex flex-col">
+        <form onSubmit={handleSubmit} class="space-y-4 flex flex-col">
           {/* Amount Input (Bento Style Emphasis) */}
-          <div class="bg-surface-bright border border-outline-variant rounded-lg p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-primary transition-colors duration-300">
+          <div class="bg-surface-bright border border-outline-variant rounded-lg p-3 flex flex-col items-center justify-center relative overflow-hidden group hover:border-primary transition-colors duration-300">
             <div class="absolute inset-0 bg-gradient-to-br from-surface-container to-surface-bright opacity-50 pointer-events-none"></div>
             <label class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1 z-10" htmlFor="amount">
               Amount
             </label>
             <div class="flex items-center justify-center gap-2 z-10 relative w-full">
-              <span class="font-numeric-display text-[32px] text-on-surface-variant font-medium">₹</span>
+              <span class="font-numeric-display text-[28px] text-on-surface-variant font-medium">₹</span>
               <input
                 id="amount"
                 type="number"
@@ -141,7 +145,7 @@ export const AddExpense = () => {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                class="bg-transparent border-none font-display text-[36px] md:text-[40px] text-on-background focus:ring-0 text-center w-full max-w-[240px] placeholder:text-outline p-0 m-0 font-bold outline-none"
+                class="bg-transparent border-none font-display text-[30px] md:text-[36px] text-on-background focus:ring-0 text-center w-full max-w-[240px] placeholder:text-outline p-0 m-0 font-bold outline-none"
               />
             </div>
           </div>
@@ -189,7 +193,7 @@ export const AddExpense = () => {
                           : 'bg-surface-bright border-outline-variant text-on-surface-variant hover:bg-surface-container-low'
                       }`}
                     >
-                      <span class="text-xl mb-1">{cat.icon || '📦'}</span>
+                      <span class="text-lg mb-0.5">{cat.icon || '📦'}</span>
                       <span class="font-body-sm text-[13px] truncate w-full text-center">{cat.name}</span>
                     </button>
                   );
@@ -210,7 +214,7 @@ export const AddExpense = () => {
                 placeholder="Add description (optional)"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                class="bg-surface-bright border border-outline-variant rounded-lg p-3 font-body-lg text-on-background focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
+                class="bg-surface-bright border border-outline-variant rounded-lg p-2.5 font-body-lg text-on-background focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
               />
             </div>
 
@@ -228,7 +232,7 @@ export const AddExpense = () => {
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  class="bg-surface-bright border border-outline-variant rounded-lg p-3 pl-10 font-body-lg text-on-background w-full focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
+                  class="bg-surface-bright border border-outline-variant rounded-lg p-2.5 pl-10 font-body-lg text-on-background w-full focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                 />
               </div>
             </div>
@@ -258,14 +262,14 @@ export const AddExpense = () => {
                 </button>
               </div>
             ) : (
-              <label class="border-2 border-dashed border-outline-variant rounded-lg p-5 flex flex-col items-center justify-center bg-surface-bright hover:bg-surface-container-low transition-colors cursor-pointer group">
+              <label class="border-2 border-dashed border-outline-variant rounded-lg p-3 flex flex-col items-center justify-center bg-surface-bright hover:bg-surface-container-low transition-colors cursor-pointer group">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleReceiptChange}
                   class="hidden"
                 />
-                <span class="material-symbols-outlined text-[32px] text-primary mb-1 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[26px] text-primary mb-0.5 group-hover:scale-110 transition-transform">
                   upload_file
                 </span>
                 <span class="font-body-lg text-primary font-medium">+ Add Receipt</span>
@@ -280,7 +284,7 @@ export const AddExpense = () => {
           <button
             type="submit"
             disabled={loading}
-            class="w-full bg-primary hover:bg-primary-container text-on-primary font-title-md text-title-md py-4 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+            class="w-full bg-primary hover:bg-primary-container text-on-primary font-title-md text-title-md py-3 rounded-full shadow-sm hover:shadow-md transition-all active:scale-[0.98] mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
               <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

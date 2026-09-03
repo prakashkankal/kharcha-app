@@ -39,23 +39,17 @@ export const BottomNav = () => {
         <span class="font-label-caps text-[11px]">Dashboard</span>
       </Link>
 
-      {/* Profile */}
+      {/* Analytics */}
       <Link
-        to="/profile"
+        to="/analytics"
         class={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
-          path.startsWith('/profile') || path.startsWith('/categories') || path.startsWith('/settings')
-            ? 'text-primary font-bold'
-            : 'text-on-surface-variant hover:text-primary'
+          path === '/analytics' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
         }`}
       >
-        <span
-          class={`material-symbols-outlined text-[24px] mb-0.5 ${
-            path.startsWith('/profile') || path.startsWith('/categories') ? 'icon-fill' : ''
-          }`}
-        >
-          person
+        <span class={`material-symbols-outlined text-[24px] mb-0.5 ${path === '/analytics' ? 'icon-fill' : ''}`}>
+          bar_chart
         </span>
-        <span class="font-label-caps text-[11px]">Profile</span>
+        <span class="font-label-caps text-[11px]">Analytics</span>
       </Link>
     </nav>
   );

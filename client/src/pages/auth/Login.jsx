@@ -119,13 +119,12 @@ export const Login = () => {
                 <label class="font-label-caps text-label-caps text-on-surface-variant uppercase" htmlFor="password">
                   Password
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert('Password reset link sent if email exists.')}
+                <Link
+                  to="/forgot-password"
                   class="font-body-sm text-body-sm text-primary hover:underline"
                 >
                   Forgot Password?
-                </button>
+                </Link>
               </div>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
                 <span class="material-symbols-outlined text-outline mr-3">lock</span>

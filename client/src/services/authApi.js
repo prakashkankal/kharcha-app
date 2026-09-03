@@ -52,6 +52,20 @@ export const authApi = {
     });
   },
 
+  forgotPassword: async (emailData) => {
+    return await apiFetch('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(emailData),
+    });
+  },
+
+  resetPassword: async (resetData) => {
+    return await apiFetch('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
+    });
+  },
+
   getMe: async () => {
     return await apiFetch('/auth/me');
   },

@@ -371,3 +371,85 @@ export const getMe = async (req, res, next) => {
     next(error);
   }
 };
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide your registered email address' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address' });
+    }
+
+    // Generate 6-digit OTP for password reset
+    const otp = generateOtp();
+    user.resetPasswordOtp = otp;
+    user.resetPasswordOtpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Password Reset OTP - Kharcha App',
+      text: `Your OTP for resetting your Kharcha password is: ${otp}. It is valid for 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8;">
+          <div style="max-width: 480px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e0e0e0;">
+            <h2 style="color: #004ac6; margin-top: 0;">Reset Your Password</h2>
+            <p style="font-size: 16px; color: #333333;">Hello ${user.name},</p>
+            <p style="font-size: 15px; color: #555555;">We received a request to reset your Kharcha account password. Use the OTP code below to set a new password:</p>
+            <div style="background-color: #eef3ff; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #004ac6;">${otp}</span>
+            </div>
+            <p style="font-size: 13px; color: #888888;">This code is valid for 10 minutes. If you did not request a password reset, you can safely ignore this email.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.json({ message: 'Password reset OTP sent to your email' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Please provide email, OTP, and new password' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp.trim()) {
+      return res.status(400).json({ message: 'Invalid OTP verification code' });
+    }
+
+    if (!user.resetPasswordOtpExpiresAt || user.resetPasswordOtpExpiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    user.resetPasswordOtp = null;
+    user.resetPasswordOtpExpiresAt = null;
+    user.isVerified = true; // Also ensure account is marked verified
+    await user.save();
+
+    res.json({ message: 'Password reset successful! You can now log in with your new password.' });
+  } catch (error) {
+    next(error);
+  }
+};

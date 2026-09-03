@@ -4,11 +4,13 @@ import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/auth/Login';
 import { SignUp } from './pages/auth/SignUp';
 import { VerifyOtp } from './pages/auth/VerifyOtp';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { AddExpense } from './pages/AddExpense';
 import { Dashboard } from './pages/Dashboard';
 import { ExpenseDetails } from './pages/ExpenseDetails';
 import { Profile } from './pages/Profile';
 import { Categories } from './pages/Categories';
+import { Analytics } from './pages/Analytics';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { InstallPwaPrompt } from './components/InstallPwaPrompt';
 
@@ -21,11 +23,13 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Authenticated Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/add-expense" element={<AddExpense />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/expense/:id" element={<ExpenseDetails />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/categories" element={<Categories />} />

@@ -1,28 +1,71 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { categoryApi } from '../services/categoryApi';
 import { useAuth } from './AuthContext';
+import { localDbGetKV, localDbSetKV } from '../services/localDb';
 
 const CategoryContext = createContext();
 
+const LOCAL_CATEGORIES_KEY = 'kharcha_cached_categories';
+
+// Default categories fallback so user can always immediately categorize even on 1st cold start
+const DEFAULT_FALLBACK_CATEGORIES = [
+  { _id: 'food_default', name: 'Food & Dining', icon: '🍔', sortOrder: 1 },
+  { _id: 'shopping_default', name: 'Shopping', icon: '🛍️', sortOrder: 2 },
+  { _id: 'transport_default', name: 'Transportation', icon: '🚗', sortOrder: 3 },
+  { _id: 'bills_default', name: 'Bills & Utilities', icon: '💡', sortOrder: 4 },
+];
+
 export const CategoryProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(() => {
+    try {
+      const cached = localStorage.getItem(LOCAL_CATEGORIES_KEY);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached categories:', e);
+    }
+    return DEFAULT_FALLBACK_CATEGORIES;
+  });
+
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   const sortByOrder = (cats) =>
     [...cats].sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999) || a.name.localeCompare(b.name));
 
-  const fetchCategories = async () => {
-    if (!isAuthenticated) {
-      setCategories([]);
-      return;
+  const saveCategoriesLocal = (cats) => {
+    const sorted = sortByOrder(cats);
+    setCategories(sorted);
+    try {
+      localStorage.setItem(LOCAL_CATEGORIES_KEY, JSON.stringify(sorted));
+      localDbSetKV(LOCAL_CATEGORIES_KEY, sorted);
+    } catch (e) {
+      console.warn('Failed to cache categories locally:', e);
     }
-    setLoadingCategories(true);
+  };
+
+  const fetchCategories = async () => {
+    if (!isAuthenticated) return;
+
+    // Load from IndexedDB KV first if state is still default
+    try {
+      const dbCats = await localDbGetKV(LOCAL_CATEGORIES_KEY);
+      if (dbCats && dbCats.length > 0) {
+        setCategories(sortByOrder(dbCats));
+      }
+    } catch (e) {
+      // ignore
+    }
+
     try {
       const data = await categoryApi.getCategories();
-      setCategories(sortByOrder(data));
+      if (Array.isArray(data) && data.length > 0) {
+        saveCategoriesLocal(data);
+      }
     } catch (error) {
-      console.error('Failed to load categories:', error.message);
+      console.warn('Silent category fetch error (Render waking up):', error.message);
+      // Retain cached categories!
     } finally {
       setLoadingCategories(false);
     }
@@ -34,41 +77,42 @@ export const CategoryProvider = ({ children }) => {
 
   const addCategory = async (categoryData) => {
     const newCategory = await categoryApi.createCategory(categoryData);
-    setCategories((prev) => sortByOrder([...prev, newCategory]));
+    const updated = [...categories, newCategory];
+    saveCategoriesLocal(updated);
     return newCategory;
   };
 
   const updateCategory = async (id, categoryData) => {
     const updated = await categoryApi.updateCategory(id, categoryData);
-    setCategories((prev) => sortByOrder(prev.map((cat) => (cat._id === id ? updated : cat))));
+    const newList = categories.map((cat) => (cat._id === id ? updated : cat));
+    saveCategoriesLocal(newList);
     return updated;
   };
 
   const reorderCategories = async (orderedIds) => {
-    // Optimistic update using map to assign new sortOrders
-    setCategories((prev) => {
-      const idToIndex = new Map(orderedIds.map((id, index) => [id, index + 1]));
-      const updated = prev.map((cat) => ({
-        ...cat,
-        sortOrder: idToIndex.get(cat._id) ?? cat.sortOrder,
-      }));
-      return sortByOrder(updated);
-    });
+    // Optimistic update
+    const idToIndex = new Map(orderedIds.map((id, index) => [id, index + 1]));
+    const updated = categories.map((cat) => ({
+      ...cat,
+      sortOrder: idToIndex.get(cat._id) ?? cat.sortOrder,
+    }));
+    saveCategoriesLocal(updated);
 
     try {
       const updatedList = await categoryApi.reorderCategories(orderedIds);
-      setCategories(sortByOrder(updatedList));
+      saveCategoriesLocal(updatedList);
       return updatedList;
     } catch (err) {
       console.error('Failed to save category order:', err);
-      fetchCategories(); // revert on error
+      fetchCategories();
       throw err;
     }
   };
 
   const deleteCategory = async (id, targetCategoryId = null) => {
     const res = await categoryApi.deleteCategory(id, targetCategoryId);
-    setCategories((prev) => prev.filter((cat) => cat._id !== id));
+    const filtered = categories.filter((cat) => cat._id !== id);
+    saveCategoriesLocal(filtered);
     return res;
   };
 
