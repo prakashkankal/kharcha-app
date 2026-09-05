@@ -14,7 +14,7 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, theme, profileImage } = req.body;
+    const { name, email, theme, monthlyBudget, onboardingCompleted, profileImage } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -36,6 +36,23 @@ export const updateProfile = async (req, res, next) => {
     if (theme && ['light', 'dark', 'system'].includes(theme)) {
       if (!user.settings) user.settings = {};
       user.settings.theme = theme;
+    }
+
+    if (monthlyBudget !== undefined) {
+      const parsedBudget = Number(monthlyBudget);
+      if (!Number.isFinite(parsedBudget) || parsedBudget < 0) {
+        return res.status(400).json({ message: 'Monthly budget must be a valid non-negative number' });
+      }
+      if (!user.settings) user.settings = {};
+      user.settings.monthlyBudget = parsedBudget;
+    }
+
+    if (onboardingCompleted !== undefined) {
+      if (onboardingCompleted !== true && onboardingCompleted !== false) {
+        return res.status(400).json({ message: 'Onboarding status must be a boolean' });
+      }
+      if (!user.settings) user.settings = {};
+      user.settings.onboardingCompleted = onboardingCompleted;
     }
 
     if (profileImage !== undefined) {

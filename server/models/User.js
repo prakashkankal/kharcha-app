@@ -60,6 +60,15 @@ const userSchema = new mongoose.Schema(
         enum: ['light', 'dark', 'system'],
         default: 'light',
       },
+      monthlyBudget: {
+        type: Number,
+        min: 0,
+        default: 0,
+      },
+      onboardingCompleted: {
+        type: Boolean,
+        default: true,
+      },
     },
   },
   {

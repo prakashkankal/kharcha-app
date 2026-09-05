@@ -37,7 +37,7 @@ export const SignUp = () => {
       if (res && res.requireOtp) {
         navigate(`/verify-otp?email=${encodeURIComponent(email)}`, { replace: true });
       } else {
-        navigate('/add-expense', { replace: true });
+        navigate('/onboarding', { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -61,7 +61,7 @@ export const SignUp = () => {
         profileImage: googleUser.picture,
         accessToken: tokenResponse.access_token,
       });
-      navigate('/add-expense', { replace: true });
+      navigate('/onboarding', { replace: true });
     } catch (err) {
       setError(err.message || 'Google Sign Up failed');
     } finally {

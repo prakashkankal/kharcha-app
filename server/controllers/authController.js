@@ -83,6 +83,7 @@ export const registerUser = async (req, res, next) => {
       isVerified: false,
       otp,
       otpExpiresAt,
+      settings: { onboardingCompleted: false },
     });
 
     await sendEmail({
@@ -320,6 +321,7 @@ export const googleAuth = async (req, res, next) => {
         googleRefreshToken: refreshToken || null,
         profileImage: profileImage || null,
         isVerified: true,
+        settings: { onboardingCompleted: false },
       });
       await seedDefaultCategories(user._id);
     } else {

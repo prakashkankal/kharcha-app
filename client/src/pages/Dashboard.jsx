@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCategory } from '../context/CategoryContext';
+import { useAuth } from '../context/AuthContext';
 import { expenseApi } from '../services/expenseApi';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { categories } = useCategory();
+  const { user } = useAuth();
 
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [selectedMonthQuery, setSelectedMonthQuery] = useState(() => new Date().toISOString().slice(0, 7));
@@ -127,6 +129,8 @@ export const Dashboard = () => {
   const selectedWeekDayKeys = selectedWeek.days;
   const selectedWeekStart = selectedWeek.start;
   const selectedWeekEnd = selectedWeek.days[6];
+  const monthlyBudget = Number(user?.settings?.monthlyBudget) || 0;
+  const weeklyBudget = monthlyBudget > 0 ? monthlyBudget / calendarWeeks.length : 0;
   const getExpenseDateKey = (expense) => new Date(expense.date || expense.createdAt).toISOString().slice(0, 10);
   const selectedMonthExpenses = currentPeriodExpenses.filter((expense) => {
     return getExpenseDateKey(expense).slice(0, 7) === selectedMonthQuery;
@@ -142,7 +146,7 @@ export const Dashboard = () => {
     sumExpenses(
       currentPeriodExpenses.filter((expense) => {
         const dateKey = getExpenseDateKey(expense);
-        return dateKey >= week.days[0] && dateKey <= week.days[6];
+        return dateKey.slice(0, 7) === selectedMonthQuery && dateKey >= week.days[0] && dateKey <= week.days[6];
       })
     );
   const getDayTotal = (dayKey) =>
@@ -151,7 +155,7 @@ export const Dashboard = () => {
   const currentWeekTotal = sumExpenses(
     currentPeriodExpenses.filter((expense) => {
       const dateKey = getExpenseDateKey(expense);
-      return dateKey >= selectedWeekStart && dateKey <= selectedWeekEnd;
+      return dateKey.slice(0, 7) === selectedMonthQuery && dateKey >= selectedWeekStart && dateKey <= selectedWeekEnd;
     })
   );
   const currentDayTotal = sumExpenses(
@@ -204,6 +208,7 @@ export const Dashboard = () => {
             </p>
             <p class="font-numeric-display text-[22px] text-on-surface font-bold truncate">
               ₹{currentWeekTotal.toLocaleString('en-IN')}
+              {weeklyBudget > 0 && <span class="text-sm font-normal text-on-surface-variant"> / ₹{weeklyBudget.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>}
             </p>
           </div>
           <span class="material-symbols-outlined text-secondary shrink-0">date_range</span>
@@ -217,6 +222,7 @@ export const Dashboard = () => {
             <p class="font-label-caps text-label-caps text-on-surface-variant uppercase truncate">{selectedMonthName}</p>
             <p class="font-numeric-display text-[22px] text-primary font-bold truncate">
               ₹{currentMonthTotal.toLocaleString('en-IN')}
+              {monthlyBudget > 0 && <span class="text-sm font-normal text-on-surface-variant"> / ₹{monthlyBudget.toLocaleString('en-IN')}</span>}
             </p>
           </div>
           <span class="material-symbols-outlined text-primary shrink-0">calendar_month</span>

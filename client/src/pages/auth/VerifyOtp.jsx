@@ -85,7 +85,7 @@ export const VerifyOtp = () => {
     setLoading(true);
     try {
       await verifyOtp({ email, otp: otpCode });
-      navigate('/add-expense', { replace: true });
+      navigate('/onboarding', { replace: true });
     } catch (err) {
       setError(err.message || 'OTP verification failed. Please check the code.');
     } finally {

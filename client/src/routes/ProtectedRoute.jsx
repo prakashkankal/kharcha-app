@@ -1,11 +1,12 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/navigation/Navbar';
 import { BottomNav } from '../components/navigation/BottomNav';
 
 export const ProtectedRoute = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -20,6 +21,18 @@ export const ProtectedRoute = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  const needsOnboarding = user?.settings?.onboardingCompleted === false;
+  if (needsOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (!needsOnboarding && location.pathname === '/onboarding') {
+    return <Navigate to="/add-expense" replace />;
+  }
+
+  if (location.pathname === '/onboarding') {
+    return <Outlet />;
   }
 
   return (

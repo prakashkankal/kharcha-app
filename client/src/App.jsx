@@ -11,6 +11,7 @@ import { ExpenseDetails } from './pages/ExpenseDetails';
 import { Profile } from './pages/Profile';
 import { Categories } from './pages/Categories';
 import { Analytics } from './pages/Analytics';
+import { Onboarding } from './pages/Onboarding';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { InstallPwaPrompt } from './components/InstallPwaPrompt';
 
@@ -27,6 +28,7 @@ export function App() {
 
         {/* Protected Authenticated Routes */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/add-expense" element={<AddExpense />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />

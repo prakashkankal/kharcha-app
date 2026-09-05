@@ -46,7 +46,12 @@ export const CategoryProvider = ({ children }) => {
   };
 
   const fetchCategories = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setLoadingCategories(false);
+      return;
+    }
+
+    setLoadingCategories(true);
 
     // Load from IndexedDB KV first if state is still default
     try {

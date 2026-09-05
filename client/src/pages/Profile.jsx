@@ -12,6 +12,7 @@ export const Profile = () => {
 
   // Modals
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showAppearanceModal, setShowAppearanceModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -22,6 +23,7 @@ export const Profile = () => {
   const [editName, setEditName] = useState(user?.name || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
   const [avatarFile, setAvatarFile] = useState(null);
+  const [monthlyBudget, setMonthlyBudget] = useState(user?.settings?.monthlyBudget || '');
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -45,6 +47,23 @@ export const Profile = () => {
       setMsg({ type: 'success', text: 'Profile updated successfully' });
     } catch (err) {
       setMsg({ type: 'error', text: err.message || 'Failed to update profile' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveBudget = async (e) => {
+    e.preventDefault();
+    setMsg({ type: '', text: '' });
+    setLoading(true);
+
+    try {
+      const updated = await profileApi.updateProfile({ monthlyBudget: Number(monthlyBudget) || 0 });
+      updateUser(updated);
+      setShowBudgetModal(false);
+      setMsg({ type: 'success', text: 'Monthly budget updated successfully' });
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message || 'Failed to update monthly budget' });
     } finally {
       setLoading(false);
     }
@@ -186,6 +205,28 @@ export const Profile = () => {
               <span class="font-body-lg text-on-surface font-medium">Appearance</span>
             </div>
             <span class="font-body-sm text-on-surface-variant capitalize mr-2">{theme}</span>
+            <span class="material-symbols-outlined text-outline">chevron_right</span>
+          </button>
+
+          {/* Budget Item */}
+          <button
+            onClick={() => {
+              setMonthlyBudget(user?.settings?.monthlyBudget || '');
+              setShowBudgetModal(true);
+            }}
+            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+          >
+            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
+              <span class="material-symbols-outlined">account_balance_wallet</span>
+            </div>
+            <div class="flex-1 text-left">
+              <span class="font-body-lg text-on-surface font-medium">Monthly Budget</span>
+            </div>
+            <span class="font-body-sm text-on-surface-variant mr-2">
+              {Number(user?.settings?.monthlyBudget) > 0
+                ? `₹${Number(user.settings.monthlyBudget).toLocaleString('en-IN')}`
+                : 'Not set'}
+            </span>
             <span class="material-symbols-outlined text-outline">chevron_right</span>
           </button>
 
@@ -333,6 +374,51 @@ export const Profile = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Budget Modal */}
+      {showBudgetModal && (
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[360px] shadow-lg border border-outline-variant flex flex-col gap-4">
+            <div>
+              <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Monthly Budget</h3>
+              <p class="font-body-sm text-on-surface-variant mt-1">Set how much you plan to spend each month. Kharcha will divide it across the month’s weeks.</p>
+            </div>
+            <form onSubmit={handleSaveBudget} class="space-y-4">
+              <div>
+                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="monthly-budget">
+                  Amount (₹)
+                </label>
+                <input
+                  id="monthly-budget"
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  value={monthlyBudget}
+                  onChange={(e) => setMonthlyBudget(e.target.value)}
+                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                />
+              </div>
+              <div class="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBudgetModal(false)}
+                  class="px-4 h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  class="px-5 h-10 bg-primary text-on-primary font-title-md rounded-lg hover:bg-primary-container disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Save Budget'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
