@@ -162,18 +162,34 @@ export const expenseApi = {
   },
 
   updateExpense: async (id, payload) => {
-    // Optimistically update local database
-    const existing = await localDbGetExpenseById(id);
-    if (existing) {
+    // Try to find existing record in local DB first
+    let existing = await localDbGetExpenseById(id);
+
+    // If not in local DB, try fetching from server so we have a base record
+    if (!existing) {
+      try {
+        const serverData = await apiFetch(`/expenses/${id}`);
+        if (serverData && serverData._id) {
+          existing = { ...serverData, syncStatus: 'synced' };
+          await localDbSaveExpense(existing);
+        }
+      } catch (e) {
+        console.warn('Could not fetch expense from server for optimistic update:', e);
+      }
+    }
+
+    // Optimistically update local DB only if we have a valid record with _id
+    if (existing && existing._id) {
       const updatedLocal = {
         ...existing,
         ...payload,
+        _id: existing._id, // ensure _id is always present (keyPath required)
         syncStatus: 'pending',
       };
       await localDbSaveExpense(updatedLocal);
     }
 
-    // Queue update
+    // Queue the update for background sync
     await localDbAddToSyncQueue({
       type: 'UPDATE',
       id,
