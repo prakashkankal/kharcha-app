@@ -8,6 +8,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -42,10 +43,9 @@ app.use('/profile', profileRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/backup', backupRoutes);
 
-// Health check
-app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'OK', message: 'Kharcha API server is running smooth' });
-});
+// Health check & UptimeRobot ping
+app.use('/api/health', healthRoutes);
+app.use('/health', healthRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
