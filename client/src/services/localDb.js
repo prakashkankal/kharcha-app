@@ -99,7 +99,10 @@ export const localDbSaveExpenses = async (expenses) => {
 };
 
 export const localDbSaveExpense = async (expense) => {
-  if (!expense || !expense._id) return;
+  if (!expense || !expense._id) {
+    console.warn('localDbSaveExpense: skipped — expense missing _id', expense);
+    return;
+  }
   return runTx('expenses', 'readwrite', (store, setRes) => {
     store.put(expense);
     setRes(expense);
