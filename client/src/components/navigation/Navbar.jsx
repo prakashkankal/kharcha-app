@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Icon } from '../Icon';
 import { SyncStatusBadge } from '../SyncStatusBadge';
 import { useAuth } from '../../context/AuthContext';
 
@@ -13,14 +14,17 @@ export const Navbar = () => {
 
   return (
     <header class="w-full bg-surface border-b border-outline-variant sticky top-0 z-40 shadow-xs">
-      <div class="w-full max-w-[1024px] mx-auto flex items-center justify-between px-container-margin h-14">
-        <div class="flex items-center gap-3">
+      <div class="w-full max-w-[1024px] mx-auto flex items-center justify-between px-container-margin h-[76px] md:h-14">
+        <div class="flex items-center gap-3 min-w-0">
           <Link to="/add-expense" class="flex items-center gap-2">
-            <img src="/logo.png" alt="Kharcha Logo" class="w-8 h-8 rounded-lg object-cover shadow-xs" />
-            <h1 class="font-title-md text-title-md text-primary font-bold tracking-tight">Kharcha</h1>
+            <img src="/logo.png" alt="Kharcha Logo" class="w-12 h-12 md:w-8 md:h-8 rounded-xl md:rounded-lg object-cover shadow-xs" />
+            <span class="flex flex-col leading-tight">
+              <h1 class="font-title-md text-[24px] md:text-title-md text-primary font-bold tracking-tight">Kharcha</h1>
+              <span class="text-sm md:text-xs text-on-surface-variant">Track · Plan · Save</span>
+            </span>
           </Link>
-          <SyncStatusBadge />
         </div>
+        <div class="hidden md:block"><SyncStatusBadge /></div>
 
         {/* Desktop Top Navigation */}
         <nav class="hidden md:flex gap-6 items-center">
@@ -32,9 +36,7 @@ export const Navbar = () => {
                 : 'text-on-surface-variant hover:text-primary'
             }`}
           >
-            <span class={`material-symbols-outlined ${path === '/add-expense' || path === '/' ? 'icon-fill' : ''}`}>
-              add_circle
-            </span>
+            <Icon name="add_circle" />
             Add Expense
           </Link>
 
@@ -46,9 +48,7 @@ export const Navbar = () => {
                 : 'text-on-surface-variant hover:text-primary'
             }`}
           >
-            <span class={`material-symbols-outlined ${path === '/dashboard' ? 'icon-fill' : ''}`}>
-              dashboard
-            </span>
+            <Icon name="dashboard" />
             Dashboard
           </Link>
 
@@ -60,9 +60,7 @@ export const Navbar = () => {
                 : 'text-on-surface-variant hover:text-primary'
             }`}
           >
-            <span class={`material-symbols-outlined ${path === '/analytics' ? 'icon-fill' : ''}`}>
-              bar_chart
-            </span>
+            <Icon name="bar_chart" />
             Analytics
           </Link>
 
@@ -74,9 +72,7 @@ export const Navbar = () => {
                 : 'text-on-surface-variant hover:text-primary'
             }`}
           >
-            <span class={`material-symbols-outlined ${path.startsWith('/profile') ? 'icon-fill' : ''}`}>
-              person
-            </span>
+            <Icon name="person" />
             Profile
           </Link>
         </nav>
@@ -96,9 +92,7 @@ export const Navbar = () => {
               {user.name.charAt(0).toUpperCase()}
             </span>
           ) : (
-            <span class="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isProfileActive ? "'FILL' 1" : "'FILL' 0" }}>
-              person
-            </span>
+            <Icon name="person" className="text-[20px]" />
           )}
         </Link>
       </div>

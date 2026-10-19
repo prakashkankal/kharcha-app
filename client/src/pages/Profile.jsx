@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon.jsx';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,8 @@ export const Profile = () => {
   const [editEmail, setEditEmail] = useState(user?.email || '');
   const [avatarFile, setAvatarFile] = useState(null);
   const [monthlyBudget, setMonthlyBudget] = useState(user?.settings?.monthlyBudget || '');
+  const [openingCashBalance, setOpeningCashBalance] = useState(user?.settings?.openingCashBalance || 0);
+  const [openingBankBalance, setOpeningBankBalance] = useState(user?.settings?.openingBankBalance || 0);
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -58,7 +61,11 @@ export const Profile = () => {
     setLoading(true);
 
     try {
-      const updated = await profileApi.updateProfile({ monthlyBudget: Number(monthlyBudget) || 0 });
+      const updated = await profileApi.updateProfile({
+        monthlyBudget: Number(monthlyBudget) || 0,
+        openingCashBalance: Number(openingCashBalance) || 0,
+        openingBankBalance: Number(openingBankBalance) || 0,
+      });
       updateUser(updated);
       setShowBudgetModal(false);
       setMsg({ type: 'success', text: 'Monthly budget updated successfully' });
@@ -150,7 +157,7 @@ export const Profile = () => {
           {user?.profileImage ? (
             <img src={user.profileImage} alt={user.name} class="w-full h-full object-cover" />
           ) : (
-            <span class="material-symbols-outlined text-[48px] text-primary">account_circle</span>
+            <Icon name="account_circle" className="text-[48px] text-primary" />
           )}
         </div>
 
@@ -185,12 +192,12 @@ export const Profile = () => {
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
           >
             <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <span class="material-symbols-outlined">category</span>
+              <Icon name="category" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-on-surface font-medium">Categories</span>
             </div>
-            <span class="material-symbols-outlined text-outline">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline" />
           </button>
 
           {/* Appearance Item */}
@@ -199,25 +206,27 @@ export const Profile = () => {
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
           >
             <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <span class="material-symbols-outlined">palette</span>
+              <Icon name="palette" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-on-surface font-medium">Appearance</span>
             </div>
             <span class="font-body-sm text-on-surface-variant capitalize mr-2">{theme}</span>
-            <span class="material-symbols-outlined text-outline">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline" />
           </button>
 
           {/* Budget Item */}
           <button
             onClick={() => {
-              setMonthlyBudget(user?.settings?.monthlyBudget || '');
+              setMonthlyBudget(user?.settings?.monthlyBudget ?? '');
+              setOpeningCashBalance(user?.settings?.openingCashBalance ?? 0);
+              setOpeningBankBalance(user?.settings?.openingBankBalance ?? 0);
               setShowBudgetModal(true);
             }}
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
           >
             <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <span class="material-symbols-outlined">account_balance_wallet</span>
+              <Icon name="account_balance_wallet" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-on-surface font-medium">Monthly Budget</span>
@@ -227,7 +236,7 @@ export const Profile = () => {
                 ? `₹${Number(user.settings.monthlyBudget).toLocaleString('en-IN')}`
                 : 'Not set'}
             </span>
-            <span class="material-symbols-outlined text-outline">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline" />
           </button>
 
           {/* Backup & Data Item */}
@@ -236,12 +245,12 @@ export const Profile = () => {
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
           >
             <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <span class="material-symbols-outlined">cloud_sync</span>
+              <Icon name="cloud_sync" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-on-surface font-medium">Backup & Data</span>
             </div>
-            <span class="material-symbols-outlined text-outline">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline" />
           </button>
 
           {/* About Item */}
@@ -250,12 +259,12 @@ export const Profile = () => {
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
           >
             <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <span class="material-symbols-outlined">info</span>
+              <Icon name="info" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-on-surface font-medium">About</span>
             </div>
-            <span class="material-symbols-outlined text-outline">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline" />
           </button>
 
           {/* Logout Item */}
@@ -264,12 +273,12 @@ export const Profile = () => {
             class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-error-container/30 transition-colors group"
           >
             <div class="w-10 h-10 rounded-lg bg-error-container/50 flex items-center justify-center text-error mr-4 shrink-0">
-              <span class="material-symbols-outlined">logout</span>
+              <Icon name="logout" className="" />
             </div>
             <div class="flex-1 text-left">
               <span class="font-body-lg text-error font-semibold">Logout</span>
             </div>
-            <span class="material-symbols-outlined text-outline group-hover:text-error">chevron_right</span>
+            <Icon name="chevron_right" className="text-outline group-hover:text-error" />
           </button>
         </div>
       </section>
@@ -364,7 +373,7 @@ export const Profile = () => {
                   }`}
                 >
                   <span>{t} Theme</span>
-                  {theme === t && <span class="material-symbols-outlined">check</span>}
+                  {theme === t && <Icon name="check" className="" />}
                 </button>
               ))}
             </div>
@@ -383,8 +392,8 @@ export const Profile = () => {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
           <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[360px] shadow-lg border border-outline-variant flex flex-col gap-4">
             <div>
-              <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Monthly Budget</h3>
-              <p class="font-body-sm text-on-surface-variant mt-1">Set how much you plan to spend each month. Kharcha will divide it across the month’s weeks.</p>
+              <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Budget & Wallets</h3>
+              <p class="font-body-sm text-on-surface-variant mt-1">Set your monthly spending limit and starting wallet balances.</p>
             </div>
             <form onSubmit={handleSaveBudget} class="space-y-4">
               <div>
@@ -395,10 +404,38 @@ export const Profile = () => {
                   id="monthly-budget"
                   type="number"
                   min="0"
-                  step="1"
+                  step="0.01"
                   required
                   value={monthlyBudget}
                   onChange={(e) => setMonthlyBudget(e.target.value)}
+                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                />
+              </div>
+              <div>
+                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="opening-cash-balance">
+                  Opening cash balance (₹)
+                </label>
+                <input
+                  id="opening-cash-balance"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={openingCashBalance}
+                  onChange={(e) => setOpeningCashBalance(e.target.value)}
+                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                />
+              </div>
+              <div>
+                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="opening-bank-balance">
+                  Opening bank / UPI balance (₹)
+                </label>
+                <input
+                  id="opening-bank-balance"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={openingBankBalance}
+                  onChange={(e) => setOpeningBankBalance(e.target.value)}
                   class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
                 />
               </div>
@@ -415,7 +452,7 @@ export const Profile = () => {
                   disabled={loading}
                   class="px-5 h-10 bg-primary text-on-primary font-title-md rounded-lg hover:bg-primary-container disabled:opacity-50"
                 >
-                  {loading ? 'Saving...' : 'Save Budget'}
+                  {loading ? 'Saving...' : 'Save Settings'}
                 </button>
               </div>
             </form>
@@ -436,12 +473,12 @@ export const Profile = () => {
                 onClick={handleExportBackup}
                 class="w-full h-12 bg-surface border border-outline-variant text-on-surface rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-surface-container-low"
               >
-                <span class="material-symbols-outlined">download</span>
+                <Icon name="download" className="" />
                 Export Expenses (JSON)
               </button>
 
               <label class="w-full h-12 bg-surface border border-outline-variant text-on-surface rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-surface-container-low cursor-pointer">
-                <span class="material-symbols-outlined">file_upload</span>
+                <Icon name="file_upload" className="" />
                 Import Expenses
                 <input type="file" accept=".json" onChange={handleImportBackup} class="hidden" />
               </label>
@@ -450,7 +487,7 @@ export const Profile = () => {
                 onClick={() => setShowClearDataConfirm(true)}
                 class="w-full h-12 bg-error-container/40 border border-error text-error rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-error-container"
               >
-                <span class="material-symbols-outlined">delete_forever</span>
+                <Icon name="delete_forever" className="" />
                 Clear All Data
               </button>
             </div>
@@ -499,7 +536,7 @@ export const Profile = () => {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
           <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[380px] shadow-lg border border-outline-variant flex flex-col items-center text-center gap-3">
             <div class="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center text-primary mb-1">
-              <span class="material-symbols-outlined text-[36px]">account_balance_wallet</span>
+              <Icon name="account_balance_wallet" className="text-[36px]" />
             </div>
             <h3 class="font-display text-[24px] text-primary font-bold">Kharcha</h3>
             <p class="font-body-sm text-on-surface-variant">Simple expense tracking.</p>

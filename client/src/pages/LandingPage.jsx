@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon.jsx';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -32,7 +33,7 @@ export const LandingPage = () => {
       {/* Hero Section */}
       <main class="flex-1 max-w-[1120px] w-full mx-auto px-4 md:px-8 py-12 md:py-20 flex flex-col items-center text-center">
         <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
-          <span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+          <Icon name="account_balance_wallet" className="text-[16px]" />
           <span>Simple, Smart & Secure Expense Tracking</span>
         </div>
 
@@ -50,7 +51,7 @@ export const LandingPage = () => {
             class="h-12 px-8 bg-primary text-on-primary font-title-md rounded-full hover:bg-primary-container active:scale-98 transition-all shadow-sm flex items-center justify-center gap-2"
           >
             <span>Create Free Account</span>
-            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <Icon name="arrow_forward" className="text-[18px]" />
           </Link>
           <Link
             to="/login"
@@ -64,7 +65,7 @@ export const LandingPage = () => {
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left mt-4">
           <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined text-[26px]">receipt_long</span>
+              <Icon name="receipt_long" className="text-[26px]" />
             </div>
             <h3 class="font-title-md text-[18px] font-bold text-on-surface">Receipt Archiving</h3>
             <p class="font-body-sm text-on-surface-variant leading-normal">
@@ -74,7 +75,7 @@ export const LandingPage = () => {
 
           <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined text-[26px]">category</span>
+              <Icon name="category" className="text-[26px]" />
             </div>
             <h3 class="font-title-md text-[18px] font-bold text-on-surface">Custom Categories</h3>
             <p class="font-body-sm text-on-surface-variant leading-normal">
@@ -84,7 +85,7 @@ export const LandingPage = () => {
 
           <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined text-[26px]">analytics</span>
+              <Icon name="analytics" className="text-[26px]" />
             </div>
             <h3 class="font-title-md text-[18px] font-bold text-on-surface">Monthly Insights</h3>
             <p class="font-body-sm text-on-surface-variant leading-normal">

@@ -14,7 +14,16 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, theme, monthlyBudget, onboardingCompleted, profileImage } = req.body;
+    const {
+      name,
+      email,
+      theme,
+      monthlyBudget,
+      openingCashBalance,
+      openingBankBalance,
+      onboardingCompleted,
+      profileImage,
+    } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -45,6 +54,17 @@ export const updateProfile = async (req, res, next) => {
       }
       if (!user.settings) user.settings = {};
       user.settings.monthlyBudget = parsedBudget;
+    }
+
+    for (const [field, value] of Object.entries({ openingCashBalance, openingBankBalance })) {
+      if (value !== undefined) {
+        const parsedBalance = Number(value);
+        if (!Number.isFinite(parsedBalance) || parsedBalance < 0 || Math.abs(Math.round(parsedBalance * 100) - parsedBalance * 100) > 1e-7) {
+          return res.status(400).json({ message: 'Opening balances must be valid non-negative amounts with no more than two decimal places' });
+        }
+        if (!user.settings) user.settings = {};
+        user.settings[field] = parsedBalance;
+      }
     }
 
     if (onboardingCompleted !== undefined) {

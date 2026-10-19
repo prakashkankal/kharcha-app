@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
@@ -107,14 +108,14 @@ export const ForgotPassword = () => {
         {/* Feedback Messages */}
         {error && (
           <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px]">error</span>
+            <Icon name="error" className="text-[20px]" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
           <div class="mb-4 bg-secondary-container text-on-secondary-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-secondary/20">
-            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+            <Icon name="check_circle" className="text-[20px]" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -127,7 +128,7 @@ export const ForgotPassword = () => {
                 Email Address
               </label>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">mail</span>
+                <Icon name="mail" className="text-outline mr-3" />
                 <input
                   id="reset-email"
                   name="email"
@@ -151,7 +152,7 @@ export const ForgotPassword = () => {
               ) : (
                 <>
                   <span>Send Reset OTP</span>
-                  <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+                  <Icon name="arrow_forward" className="text-[20px]" />
                 </>
               )}
             </button>
@@ -177,7 +178,7 @@ export const ForgotPassword = () => {
                 </button>
               </div>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">key</span>
+                <Icon name="key" className="text-outline mr-3" />
                 <input
                   id="reset-otp"
                   name="otp"
@@ -198,7 +199,7 @@ export const ForgotPassword = () => {
                 New Password
               </label>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">lock</span>
+                <Icon name="lock" className="text-outline mr-3" />
                 <input
                   id="new-password"
                   name="newPassword"
@@ -214,9 +215,7 @@ export const ForgotPassword = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   class="ml-2 text-outline hover:text-on-surface focus:outline-none"
                 >
-                  <span class="material-symbols-outlined text-[20px]">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
+                  <Icon name={showPassword ? 'visibility_off' : 'visibility'} className="text-[20px]" />
                 </button>
               </div>
             </div>
@@ -227,7 +226,7 @@ export const ForgotPassword = () => {
                 Confirm New Password
               </label>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">lock_reset</span>
+                <Icon name="lock_reset" className="text-outline mr-3" />
                 <input
                   id="confirm-password"
                   name="confirmPassword"
@@ -251,7 +250,7 @@ export const ForgotPassword = () => {
               ) : (
                 <>
                   <span>Reset Password</span>
-                  <span class="material-symbols-outlined text-[20px]">check</span>
+                  <Icon name="check" className="text-[20px]" />
                 </>
               )}
             </button>

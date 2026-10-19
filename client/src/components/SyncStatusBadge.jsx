@@ -1,3 +1,4 @@
+import { Icon } from './Icon.jsx';
 import React, { useState, useEffect } from 'react';
 import { syncManager } from '../services/syncManager';
 
@@ -30,7 +31,7 @@ export const SyncStatusBadge = () => {
   if (syncState.isSyncing) {
     return (
       <div class="flex items-center gap-1.5 text-[11px] text-primary font-medium px-2.5 py-1 rounded-full bg-primary/10 animate-pulse">
-        <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+        <Icon name="sync" className="text-[13px] animate-spin" />
         <span>Syncing...</span>
       </div>
     );
@@ -45,7 +46,7 @@ export const SyncStatusBadge = () => {
         class="flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 border border-amber-300/60 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer shadow-2xs"
         title="Tap to sync now with server"
       >
-        <span class="material-symbols-outlined text-[13px]">cloud_upload</span>
+        <Icon name="cloud_upload" className="text-[13px]" />
         <span>{syncState.pendingCount} Saved locally</span>
       </button>
     );

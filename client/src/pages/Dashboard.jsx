@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { CategoryIcon, Icon } from '../components/Icon.jsx';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCategory } from '../context/CategoryContext';
 import { useAuth } from '../context/AuthContext';
 import { expenseApi } from '../services/expenseApi';
+import { getSpendingTotal, getTransactionType } from '../services/transactionUtils';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -25,21 +27,13 @@ export const Dashboard = () => {
   const [currentPeriodExpenses, setCurrentPeriodExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const hasExpensesRef = useRef(false);
+  const receiptInputRef = useRef(null);
 
   const selectedMonthDate = new Date(`${selectedMonthQuery}-01T00:00:00Z`);
-  const selectedMonthName = selectedMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const todayKey = new Date().toISOString().slice(0, 10);
-  const todayMonthQuery = todayKey.slice(0, 7);
-  const selectedDate = new Date(`${selectedDayKey}T00:00:00Z`);
-  const selectedDateDisplay = selectedDate.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-
-  const fetchDashboardData = async (isInitial = false) => {
-    if (isInitial && expenses.length === 0) {
+  const fetchDashboardData = useCallback(async (isInitial = false) => {
+    if (isInitial && !hasExpensesRef.current) {
       setLoading(true);
     }
     setError('');
@@ -47,21 +41,22 @@ export const Dashboard = () => {
       const categoryIdParam = selectedCategoryFilter !== 'all' ? selectedCategoryFilter : undefined;
       const expensesData = await expenseApi.getExpenses({ categoryId: categoryIdParam });
 
+      hasExpensesRef.current = expensesData?.length > 0;
       setExpenses(expensesData || []);
       setCurrentPeriodExpenses(expensesData || []);
     } catch (err) {
       console.warn('Dashboard data fetch warning:', err.message);
-      if (expenses.length === 0) {
+      if (!hasExpensesRef.current) {
         setError(err.message || 'Failed to load dashboard data');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategoryFilter]);
 
   useEffect(() => {
     fetchDashboardData(true);
-  }, [selectedMonthQuery, selectedCategoryFilter]);
+  }, [fetchDashboardData]);
 
   // Re-fetch quietly when a background sync finishes
   useEffect(() => {
@@ -70,13 +65,15 @@ export const Dashboard = () => {
     };
     window.addEventListener('kharcha_sync_event', handleSyncEvent);
     return () => window.removeEventListener('kharcha_sync_event', handleSyncEvent);
-  }, [selectedMonthQuery, selectedCategoryFilter]);
+  }, [fetchDashboardData]);
 
   // Helper to group expenses by formatted date string
   const groupExpensesByDate = (expenseList) => {
     const groups = {};
     const todayStr = new Date().toISOString().slice(0, 10);
-    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yesterdayDate = new Date(`${todayStr}T00:00:00Z`);
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
 
     expenseList.forEach((item) => {
       const itemDateStr = new Date(item.date).toISOString().slice(0, 10);
@@ -139,7 +136,7 @@ export const Dashboard = () => {
     const week = calendarWeeks[weekNumber - 1];
     return week ? week.days : [];
   };
-  const sumExpenses = (expenseList) => expenseList.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const sumExpenses = (expenseList) => getSpendingTotal(expenseList);
   const getMonthTotal = (monthQuery) =>
     sumExpenses(currentPeriodExpenses.filter((expense) => getExpenseDateKey(expense).slice(0, 7) === monthQuery));
   const getWeekTotal = (week) =>
@@ -161,8 +158,8 @@ export const Dashboard = () => {
   const currentDayTotal = sumExpenses(
     currentPeriodExpenses.filter((expense) => getExpenseDateKey(expense) === selectedDayKey)
   );
-  const selectedDayExpenses = expenses.filter((expense) => getExpenseDateKey(expense) === selectedDayKey);
-  const groupedExpenses = groupExpensesByDate(selectedDayExpenses);
+  const activityExpenses = expenses.filter((expense) => getExpenseDateKey(expense) === selectedDayKey);
+  const groupedExpenses = groupExpensesByDate(activityExpenses);
   const pickerTitle = activePicker === 'month' ? 'Select month' : activePicker === 'week' ? 'Select week' : 'Select day';
   const closePicker = () => setActivePicker(null);
   const selectMonth = (monthQuery) => {
@@ -183,69 +180,145 @@ export const Dashboard = () => {
     setSelectedDayKey(dayKey);
     closePicker();
   };
-  const returnToToday = () => {
-    const today = new Date();
-    const todayWeekStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()))
-      .toISOString()
-      .slice(0, 10);
-    setSelectedMonthQuery(todayMonthQuery);
-    setSelectedWeekStartKey(todayWeekStart);
-    setSelectedDayKey(todayKey);
+  const weeklyBudgetPercent = weeklyBudget > 0 ? Math.min(100, (currentWeekTotal / weeklyBudget) * 100) : 0;
+  const monthlyBudgetPercent = monthlyBudget > 0 ? Math.min(100, (currentMonthTotal / monthlyBudget) * 100) : 0;
+  const monthlyBudgetRemaining = monthlyBudget > 0 ? Math.max(0, monthlyBudget - currentMonthTotal) : 0;
+
+  const handleReceiptCapture = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Receipt file size must be less than 5MB');
+      return;
+    }
+    try {
+      const receiptPreview = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error('Could not load receipt image'));
+        reader.readAsDataURL(file);
+      });
+      navigate('/add-expense', { state: { receiptFile: file, receiptPreview } });
+    } catch (captureError) {
+      setError(captureError.message || 'Could not load receipt image');
+    }
   };
-  const isTodaySelected = selectedDayKey === todayKey;
 
   return (
-    <div class="w-full max-w-[1024px] mx-auto space-y-6 pb-6">
-      <section class="grid grid-cols-2 gap-3">
+    <div class="w-full max-w-[1024px] mx-auto space-y-6 pb-10">
+      <section class="grid grid-cols-2 gap-3 md:gap-5">
         <button
           type="button"
           onClick={() => setActivePicker('week')}
-          class="text-left bg-secondary-container/40 border border-secondary/20 rounded-full px-4 py-3 flex items-center justify-between gap-3 min-w-0 hover:bg-secondary-container/60 transition-colors"
+          class="text-left bg-surface-container-lowest border border-secondary/15 rounded-[24px] p-3 md:p-6 flex flex-col gap-3 min-w-0 hover:bg-surface-container-low transition-colors shadow-sm"
         >
-          <div class="min-w-0">
-            <p class="font-label-caps text-label-caps text-on-surface-variant uppercase truncate">
-              Week {selectedWeekNumber}
-            </p>
-            <p class="font-numeric-display text-[22px] text-on-surface font-bold truncate">
-              ₹{currentWeekTotal.toLocaleString('en-IN')}
-              {weeklyBudget > 0 && <span class="text-sm font-normal text-on-surface-variant"> / ₹{weeklyBudget.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>}
-            </p>
+          <div class="flex items-center gap-2 md:gap-3 min-w-0">
+            <span class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-secondary-container/40 text-secondary flex items-center justify-center shrink-0">
+              <Icon name="calendar_month" className="text-[23px] md:text-[26px]" />
+            </span>
+            <span class="flex flex-1 items-center justify-between min-w-0">
+              <span class="min-w-0">
+                <span class="block font-title-md text-[17px] md:text-xl font-bold text-on-surface truncate">Week {selectedWeekNumber}</span>
+                <span class="block text-sm md:text-base text-on-surface-variant">Budget</span>
+              </span>
+              <Icon name="chevron_right" className="text-on-surface-variant" />
+            </span>
           </div>
-          <span class="material-symbols-outlined text-secondary shrink-0">date_range</span>
+          <p class="font-numeric-display text-[25px] md:text-[32px] text-on-surface font-bold truncate">
+            ₹{currentWeekTotal.toLocaleString('en-IN')}
+            {weeklyBudget > 0 && <span class="text-base md:text-xl font-medium text-on-surface-variant"> / ₹{weeklyBudget.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>}
+          </p>
+          {weeklyBudget > 0 && (
+            <>
+              <div class="h-2.5 rounded-full bg-surface-container-high overflow-hidden">
+                <div class="h-full rounded-full bg-secondary" style={{ width: `${weeklyBudgetPercent}%` }} />
+              </div>
+              <p class="text-base md:text-lg font-semibold text-secondary">{Math.max(0, Math.round(100 - weeklyBudgetPercent))}% left</p>
+            </>
+          )}
+          {!weeklyBudget && (
+            <p class="text-sm text-on-surface-variant">Weekly spending</p>
+          )}
         </button>
         <button
           type="button"
           onClick={() => setActivePicker('month')}
-          class="text-left bg-primary/10 border border-primary/20 rounded-full px-4 py-3 flex items-center justify-between gap-3 min-w-0 hover:bg-primary/15 transition-colors"
+          class="text-left bg-surface-container-lowest border border-primary/15 rounded-[24px] p-3 md:p-6 flex flex-col gap-3 min-w-0 hover:bg-surface-container-low transition-colors shadow-sm"
         >
-          <div class="min-w-0">
-            <p class="font-label-caps text-label-caps text-on-surface-variant uppercase truncate">{selectedMonthName}</p>
-            <p class="font-numeric-display text-[22px] text-primary font-bold truncate">
-              ₹{currentMonthTotal.toLocaleString('en-IN')}
-              {monthlyBudget > 0 && <span class="text-sm font-normal text-on-surface-variant"> / ₹{monthlyBudget.toLocaleString('en-IN')}</span>}
-            </p>
+          <div class="flex items-center gap-2 md:gap-3 min-w-0">
+            <span class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Icon name="bar_chart" className="text-[23px] md:text-[26px]" />
+            </span>
+            <span class="flex flex-1 items-center justify-between gap-1 min-w-0">
+              <span class="min-w-0">
+                <span class="block font-title-md text-[13px] sm:text-[15px] md:text-xl font-bold text-on-surface truncate">
+                  {selectedMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                </span>
+                <span class="block text-sm md:text-base text-on-surface-variant">Monthly Spend</span>
+              </span>
+              {monthlyBudget > 0 && (
+                <span class={`hidden sm:inline-flex rounded-2xl px-2 py-1 text-xs md:text-sm font-medium text-center shrink-0 ${currentMonthTotal <= monthlyBudget ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'}`}>
+                  {currentMonthTotal <= monthlyBudget ? 'On Track' : 'Over Budget'}
+                  <Icon name="trending_up" className="text-sm align-middle ml-0.5" />
+                </span>
+              )}
+            </span>
           </div>
-          <span class="material-symbols-outlined text-primary shrink-0">calendar_month</span>
+          <p class={`font-numeric-display text-[25px] md:text-[32px] font-bold truncate ${monthlyBudget > 0 && currentMonthTotal > monthlyBudget ? 'text-error' : 'text-primary'}`}>
+            ₹{currentMonthTotal.toLocaleString('en-IN')}
+            {monthlyBudget > 0 && <span class="text-base md:text-xl font-medium text-on-surface-variant"> / ₹{monthlyBudget.toLocaleString('en-IN')}</span>}
+          </p>
+          {monthlyBudget > 0 ? (
+            <>
+              <div class="h-2.5 rounded-full bg-surface-container-high overflow-hidden">
+                <div class={`h-full rounded-full ${currentMonthTotal > monthlyBudget ? 'bg-error' : 'bg-primary'}`} style={{ width: `${monthlyBudgetPercent}%` }} />
+              </div>
+              <p class="text-sm md:text-base text-on-surface-variant">₹{monthlyBudgetRemaining.toLocaleString('en-IN')} balance</p>
+            </>
+          ) : (
+            <p class="text-sm text-on-surface-variant">Monthly spending</p>
+          )}
         </button>
       </section>
 
-      <button
-        type="button"
-        onClick={() => setActivePicker('day')}
-        class="w-full text-left bg-tertiary-container/10 border border-tertiary/20 rounded-full px-5 py-3 flex items-center justify-between gap-4 hover:bg-tertiary-container/20 transition-colors"
-      >
-        <div>
-          <p class="font-label-caps text-label-caps text-on-surface-variant uppercase">
-            {isTodaySelected ? 'Today' : selectedDateDisplay}
+      <section class="rounded-[24px] bg-gradient-to-r from-[#0644c5] to-[#0874ed] text-white px-5 md:px-8 py-5 md:py-7 flex items-center justify-between gap-3 shadow-md overflow-hidden">
+        <div class="min-w-0 relative z-10">
+          <p class="text-sm md:text-base font-semibold tracking-wide flex items-center gap-3">
+            TODAY'S SPENDS <span class="w-2.5 h-2.5 rounded-full bg-secondary-container"></span>
           </p>
-          <p class="font-body-sm text-body-sm text-on-surface-variant">
-            {isTodaySelected ? selectedDateDisplay : 'Selected day spending'}
+          <button type="button" onClick={() => setActivePicker('day')} class="text-left text-base md:text-lg opacity-90 mt-1">
+            {new Date(`${selectedDayKey}T00:00:00Z`).toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              timeZone: 'UTC',
+            })}
+          </button>
+          {selectedDayKey !== todayKey && (
+            <button
+              type="button"
+              onClick={() => setSelectedDayKey(todayKey)}
+              class="block text-left text-sm font-semibold text-secondary-container hover:underline"
+            >
+              Back to today
+            </button>
+          )}
+          <p class="text-sm md:text-base font-semibold text-secondary-container mt-2">
+            {currentDayTotal > 0 ? 'Keep tracking your spending today.' : 'Zero spends so far today!'}
           </p>
         </div>
-        <p class="font-numeric-display text-[26px] text-tertiary font-bold shrink-0">
-          ₹{currentDayTotal.toLocaleString('en-IN')}
-        </p>
-      </button>
+        <div class="shrink-0 flex items-center justify-end gap-2 text-secondary-container">
+          <span class="hidden sm:flex relative w-16 h-16 md:w-20 md:h-20 rounded-[20px] bg-white/15 items-center justify-center rotate-[-8deg]">
+            <Icon name="account_balance_wallet" className="text-[48px] md:text-[60px]" />
+            <span class="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-secondary-container text-primary flex items-center justify-center text-lg font-bold">₹</span>
+          </span>
+          <p class="font-numeric-display text-[30px] md:text-[44px] leading-none font-bold whitespace-nowrap">
+            ₹{currentDayTotal.toLocaleString('en-IN')}
+          </p>
+        </div>
+      </section>
 
       {activePicker && (
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4" onClick={closePicker}>
@@ -259,7 +332,7 @@ export const Dashboard = () => {
             <div class="flex items-center justify-between mb-4">
               <h2 id="dashboard-picker-title" class="font-title-md text-title-md text-on-surface font-semibold">{pickerTitle}</h2>
               <button type="button" onClick={closePicker} aria-label="Close picker" class="p-2 rounded-full hover:bg-surface-container-low text-on-surface-variant">
-                <span class="material-symbols-outlined">close</span>
+                <Icon name="close" className="" />
               </button>
             </div>
 
@@ -351,17 +424,17 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {/* Main Action Button */}
-      <button
-        type="button"
-        onClick={isTodaySelected ? () => navigate('/add-expense') : returnToToday}
-        class="w-full bg-primary hover:bg-primary-container text-on-primary rounded-xl py-3.5 px-4 flex items-center justify-center gap-2 transition-all duration-150 active:scale-98 shadow-sm font-title-md text-title-md min-h-[48px]"
-      >
-        <span class="material-symbols-outlined icon-fill">{isTodaySelected ? 'add' : 'today'}</span>
-        {isTodaySelected ? 'Add Expense' : 'Back to Today'}
-      </button>
-
       {/* Category Filter Chips */}
+      <div class="flex items-center justify-between">
+        <h2 class="font-title-md text-title-md text-on-surface font-semibold">Category Filter</h2>
+        <button
+          type="button"
+          onClick={() => navigate('/categories')}
+          class="flex items-center gap-1 text-sm md:text-base font-medium text-primary hover:underline"
+        >
+          See All <Icon name="chevron_right" className="text-[20px]" />
+        </button>
+      </div>
       <nav aria-label="Expense Categories" class="flex overflow-x-auto no-scrollbar gap-2 py-1 -mx-container-margin px-container-margin md:mx-0 md:px-0">
         <button
           type="button"
@@ -372,6 +445,7 @@ export const Dashboard = () => {
               : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high border border-outline-variant'
           }`}
         >
+          <Icon name="apps" className="text-[20px]" />
           All
         </button>
         {categories.map((cat) => {
@@ -387,7 +461,7 @@ export const Dashboard = () => {
                   : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high border-outline-variant'
               }`}
             >
-              <span>{cat.icon}</span>
+              <CategoryIcon name={cat.icon} />
               <span>{cat.name}</span>
             </button>
           );
@@ -397,10 +471,23 @@ export const Dashboard = () => {
       {/* Error Alert */}
       {error && (
         <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2">
-          <span class="material-symbols-outlined text-[20px]">error</span>
+          <Icon name="error" className="text-[20px]" />
           <span>{error}</span>
         </div>
       )}
+
+      <div class="flex items-center justify-between gap-3 pt-1">
+        <h2 class="font-title-md text-title-md font-semibold text-on-surface">Recent Activity</h2>
+        <button
+          type="button"
+          onClick={() => setActivePicker('month')}
+          class="flex items-center gap-2 rounded-full px-3 py-2 text-sm md:text-base text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-colors"
+        >
+          <Icon name="calendar_month" className="text-[20px]" />
+          {selectedMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+          <Icon name="keyboard_arrow_down" className="text-[20px]" />
+        </button>
+      </div>
 
       {/* Loading Skeleton */}
       {loading ? (
@@ -408,22 +495,43 @@ export const Dashboard = () => {
           <div class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p class="font-body-sm">Loading expenses...</p>
         </div>
-      ) : selectedDayExpenses.length === 0 ? (
+      ) : activityExpenses.length === 0 ? (
         /* Empty State Card */
-        <div class="flex flex-col items-center justify-center text-center w-full my-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-8 shadow-xs">
-          <div class="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-4 text-primary shrink-0">
-            <span class="material-symbols-outlined text-[44px]">receipt_long</span>
+        <div class="flex flex-col items-center justify-center text-center w-full min-h-[360px] my-2 bg-surface-container-lowest border-2 border-dashed border-outline-variant/60 rounded-[24px] px-5 py-8 md:px-10 md:py-12 shadow-xs">
+          <div class="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-5 text-primary shrink-0">
+            <Icon name="receipt_long" className="text-[52px]" />
           </div>
-          <h2 class="font-display text-[24px] font-bold text-on-surface mb-2 w-full">No expenses yet</h2>
-          <p class="font-body-lg text-on-surface-variant mb-6 w-full">Add your first expense to start tracking.</p>
+          <h2 class="font-display text-[24px] md:text-[28px] font-bold text-on-surface mb-2 w-full">
+            No transactions yet
+          </h2>
+          <p class="font-body-lg text-on-surface-variant mb-6 max-w-[420px]">
+            Add an expense or scan a receipt to start tracking your spends.
+          </p>
           <button
             type="button"
             onClick={() => navigate('/add-expense')}
-            class="bg-primary text-on-primary font-title-md py-3 px-6 rounded-lg w-full flex items-center justify-center gap-2 transition-transform active:scale-95 hover:bg-primary-container"
+            class="w-full max-w-[464px] min-h-[60px] bg-primary hover:bg-primary-container text-on-primary font-title-md text-lg rounded-2xl flex items-center justify-center gap-3 shadow-sm transition-transform active:scale-[0.98]"
           >
-            <span class="material-symbols-outlined icon-fill text-[20px]">add</span>
+            <Icon name="add" className="text-[28px]" />
             Add Expense
           </button>
+          <button
+            type="button"
+            onClick={() => receiptInputRef.current?.click()}
+            class="w-full max-w-[464px] min-h-[58px] mt-3 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary font-title-md text-lg rounded-2xl flex items-center justify-center gap-3 transition-colors"
+          >
+            <Icon name="photo_camera" className="text-[26px]" />
+            Scan Receipt
+          </button>
+          <input
+            ref={receiptInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleReceiptCapture}
+            class="hidden"
+            aria-label="Capture or choose a receipt image"
+          />
         </div>
       ) : (
         /* Date Grouped Expense List */
@@ -442,36 +550,47 @@ export const Dashboard = () => {
                   >
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-xl shrink-0">
-                        {expense.categoryId?.icon || '📦'}
+                        <CategoryIcon name={expense.categoryId?.icon} />
                       </div>
                       <div class="overflow-hidden">
                         <p class="font-body-lg text-on-surface font-medium truncate">
-                          {expense.categoryId?.name || 'Expense'}
+                          {getTransactionType(expense) === 'income'
+                            ? 'Income'
+                            : getTransactionType(expense) === 'transfer'
+                              ? 'Wallet transfer'
+                              : expense.categoryId?.name || 'Expense'}
                         </p>
                         {expense.description ? (
                           <p class="font-body-sm text-on-surface-variant truncate">{expense.description}</p>
                         ) : (
                           <p class="font-body-sm text-outline italic">No description</p>
                         )}
+
                       </div>
                     </div>
                     <div class="text-right shrink-0">
                       <p class="font-numeric-display text-[20px] font-semibold text-on-surface">
-                        -₹{expense.amount.toLocaleString('en-IN')}
+                        {getTransactionType(expense) === 'income' ? '+' : getTransactionType(expense) === 'transfer' ? <Icon name="swap_horiz" /> : '-'}
+                        ₹{expense.amount.toLocaleString('en-IN')}
                       </p>
                       <div class="flex items-center justify-end gap-1.5 mt-0.5">
+                        {expense.paymentStatus && expense.paymentStatus !== 'success' && (
+                          <span class="text-[10px] bg-tertiary-container text-on-tertiary-container px-1.5 py-0.5 rounded font-medium capitalize">
+                            {expense.paymentStatus}
+                          </span>
+                        )}
                         {expense.syncStatus === 'pending' && (
                           <span
                             class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5"
                             title="Saved locally on device. Will upload once server is reachable."
                           >
-                            <span class="material-symbols-outlined text-[11px] animate-pulse">cloud_upload</span>
+                            <Icon name="cloud_upload" className="text-[11px] animate-pulse" />
                             Local
                           </span>
                         )}
                         {expense.receiptUrl && (
                           <span class="text-[11px] text-primary flex items-center justify-end gap-0.5">
-                            <span class="material-symbols-outlined text-[13px]">attach_file</span>
+                            <Icon name="attach_file" className="text-[13px]" />
                             Receipt
                           </span>
                         )}

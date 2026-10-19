@@ -3,6 +3,7 @@ import path from 'path';
 import Expense from '../models/Expense.js';
 import Category from '../models/Category.js';
 import { uploadFileToDrive } from '../utils/googleDrive.js';
+import { parseAmount, parseTransactionFields } from '../utils/transactionValidation.js';
 
 export const getExpenses = async (req, res, next) => {
   try {
@@ -12,7 +13,6 @@ export const getExpenses = async (req, res, next) => {
     if (categoryId) {
       query.categoryId = categoryId;
     }
-
     if (month) {
       // month format: YYYY-MM
       const [year, m] = month.split('-').map(Number);
@@ -47,17 +47,25 @@ export const getMonthlySummary = async (req, res, next) => {
         $match: {
           userId: req.user._id,
           date: { $gte: startDate, $lte: endDate },
+          $and: [
+            { $or: [{ transactionType: 'expense' }, { transactionType: { $exists: false } }] },
+            { $or: [{ paymentStatus: 'success' }, { paymentStatus: { $exists: false } }] },
+          ],
         },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: '$amount' },
+          totalPaise: {
+            $sum: {
+              $ifNull: ['$amountPaise', { $round: [{ $multiply: ['$amount', 100] }, 0] }],
+            },
+          },
         },
       },
     ]);
 
-    const total = result.length > 0 ? result[0].total : 0;
+    const total = result.length > 0 ? result[0].totalPaise / 100 : 0;
     res.json({ month: targetMonth, total });
   } catch (error) {
     next(error);
@@ -81,17 +89,30 @@ export const getExpenseById = async (req, res, next) => {
 
 export const createExpense = async (req, res, next) => {
   try {
-    const { amount, categoryId, description, date } = req.body;
+    const {
+      amount,
+      categoryId,
+      description,
+      date,
+      merchantName,
+      merchantUpiId,
+      externalTransactionReference,
+      selectedPaymentApp,
+    } = req.body;
 
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ message: 'Valid positive amount is required' });
+    const parsedAmount = parseAmount(amount);
+    if (parsedAmount === null) {
+      return res.status(400).json({ message: 'Amount must be a positive value with no more than two decimal places' });
     }
 
     if (!categoryId) {
       return res.status(400).json({ message: 'Category is required' });
     }
 
+    const transactionFields = parseTransactionFields(req.body);
+    if (transactionFields.error) {
+      return res.status(400).json({ message: transactionFields.error });
+    }
     const categoryExists = await Category.findOne({ _id: categoryId, userId: req.user._id });
     if (!categoryExists) {
       return res.status(400).json({ message: 'Invalid category selected' });
@@ -110,7 +131,12 @@ export const createExpense = async (req, res, next) => {
       userId: req.user._id,
       categoryId,
       amount: parsedAmount,
+      ...transactionFields,
       description: description || '',
+      merchantName: merchantName || '',
+      merchantUpiId: merchantUpiId || '',
+      externalTransactionReference: externalTransactionReference || '',
+      selectedPaymentApp: selectedPaymentApp || '',
       receiptUrl,
       date: expenseDate,
     });
@@ -125,7 +151,22 @@ export const createExpense = async (req, res, next) => {
 export const updateExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { amount, categoryId, description, date, removeReceipt } = req.body;
+    const {
+      amount,
+      categoryId,
+      description,
+      date,
+      removeReceipt,
+      transactionType,
+      paymentMethod,
+      paymentStatus,
+      fromWallet,
+      toWallet,
+      merchantName,
+      merchantUpiId,
+      externalTransactionReference,
+      selectedPaymentApp,
+    } = req.body;
 
     const expense = await Expense.findOne({ _id: id, userId: req.user._id });
     if (!expense) {
@@ -133,13 +174,28 @@ export const updateExpense = async (req, res, next) => {
     }
 
     if (amount !== undefined) {
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        return res.status(400).json({ message: 'Amount must be greater than 0' });
+      const parsedAmount = parseAmount(amount);
+      if (parsedAmount === null) {
+        return res.status(400).json({ message: 'Amount must be a positive value with no more than two decimal places' });
       }
       expense.amount = parsedAmount;
     }
 
+    const transactionFields = parseTransactionFields(
+      { transactionType, paymentMethod, paymentStatus, fromWallet, toWallet },
+      { defaults: false }
+    );
+    if (transactionFields.error) {
+      return res.status(400).json({ message: transactionFields.error });
+    }
+    for (const [field, value] of Object.entries(transactionFields)) {
+      if (value !== undefined) expense[field] = value;
+    }
+
+    if (merchantName !== undefined) expense.merchantName = merchantName;
+    if (merchantUpiId !== undefined) expense.merchantUpiId = merchantUpiId;
+    if (externalTransactionReference !== undefined) expense.externalTransactionReference = externalTransactionReference;
+    if (selectedPaymentApp !== undefined) expense.selectedPaymentApp = selectedPaymentApp;
     let categoryObj = null;
     if (categoryId) {
       categoryObj = await Category.findOne({ _id: categoryId, userId: req.user._id });

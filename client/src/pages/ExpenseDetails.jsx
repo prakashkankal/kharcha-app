@@ -1,3 +1,4 @@
+import { CategoryIcon, Icon } from '../components/Icon.jsx';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { expenseApi } from '../services/expenseApi';
@@ -23,6 +24,9 @@ export const ExpenseDetails = () => {
   const [editCategory, setEditCategory] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editPaymentStatus, setEditPaymentStatus] = useState('success');
+  const [editMerchantUpiId, setEditMerchantUpiId] = useState('');
+  const [editExternalTransactionReference, setEditExternalTransactionReference] = useState('');
   const [newReceiptFile, setNewReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -39,6 +43,9 @@ export const ExpenseDetails = () => {
       setEditCategory(data.categoryId?._id || data.categoryId);
       setEditDescription(data.description || '');
       setEditDate(new Date(data.date).toISOString().slice(0, 10));
+      setEditPaymentStatus(data.paymentStatus || 'success');
+      setEditMerchantUpiId(data.merchantUpiId || '');
+      setEditExternalTransactionReference(data.externalTransactionReference || '');
     } catch (err) {
       setError(err.message || 'Failed to load expense details');
     } finally {
@@ -73,7 +80,12 @@ export const ExpenseDetails = () => {
     try {
       const formData = new FormData();
       formData.append('removeReceipt', 'true');
-      const updated = await expenseApi.updateExpense(id, formData);
+      const currentCategoryId = expense.categoryId?._id || expense.categoryId;
+      const updated = await expenseApi.updateExpense(
+        id,
+        formData,
+        categories.find((category) => category._id === currentCategoryId)
+      );
       setExpense(updated);
       setNewReceiptFile(null);
       setReceiptPreview(null);
@@ -95,11 +107,18 @@ export const ExpenseDetails = () => {
       formData.append('categoryId', editCategory);
       formData.append('description', editDescription);
       formData.append('date', editDate);
+      formData.append('paymentStatus', editPaymentStatus);
+      formData.append('merchantUpiId', editMerchantUpiId);
+      formData.append('externalTransactionReference', editExternalTransactionReference);
       if (newReceiptFile) {
         formData.append('receipt', newReceiptFile);
       }
 
-      const updated = await expenseApi.updateExpense(id, formData);
+      const updated = await expenseApi.updateExpense(
+        id,
+        formData,
+        categories.find((category) => category._id === editCategory)
+      );
       setExpense(updated);
       setIsEditing(false);
       setNewReceiptFile(null);
@@ -154,7 +173,7 @@ export const ExpenseDetails = () => {
           onClick={() => navigate(-1)}
           class="text-on-surface-variant flex items-center gap-1 p-2 rounded hover:bg-surface-container-low transition-colors"
         >
-          <span class="material-symbols-outlined">arrow_back</span>
+          <Icon name="arrow_back" className="" />
           <span class="font-title-md text-title-md">Back</span>
         </button>
         <h1 class="font-title-md text-title-md text-primary font-bold">Expense Details</h1>
@@ -163,7 +182,7 @@ export const ExpenseDetails = () => {
 
       {error && (
         <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2">
-          <span class="material-symbols-outlined text-[20px]">error</span>
+          <Icon name="error" className="text-[20px]" />
           <span>{error}</span>
         </div>
       )}
@@ -182,7 +201,7 @@ export const ExpenseDetails = () => {
               </label>
               <input
                 type="number"
-                step="any"
+                step="0.01"
                 required
                 value={editAmount}
                 onChange={(e) => setEditAmount(e.target.value)}
@@ -201,7 +220,7 @@ export const ExpenseDetails = () => {
               >
                 {categories.map((cat) => (
                   <option key={cat._id} value={cat._id}>
-                    {cat.icon} {cat.name}
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -232,6 +251,55 @@ export const ExpenseDetails = () => {
                 class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface focus:border-primary outline-none"
               />
             </div>
+
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="payment-status">
+                Payment status
+              </label>
+              <select
+                id="payment-status"
+                value={editPaymentStatus}
+                onChange={(event) => setEditPaymentStatus(event.target.value)}
+                class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+              >
+                <option value="pending">Pending</option>
+                <option value="unknown">Unknown</option>
+                <option value="success">Confirmed</option>
+                <option value="failed">Failed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <p class="font-body-sm text-on-surface-variant mt-1">
+                Confirm a payment only after checking the UPI app or bank record.
+              </p>
+            </div>
+            {expense.paymentMethod === 'upi' && (
+              <>
+                <div>
+                  <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="merchant-upi-id">
+                    Merchant UPI ID
+                  </label>
+                  <input
+                    id="merchant-upi-id"
+                    type="text"
+                    value={editMerchantUpiId}
+                    onChange={(event) => setEditMerchantUpiId(event.target.value)}
+                    class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="transaction-reference">
+                    Bank / UPI transaction reference
+                  </label>
+                  <input
+                    id="transaction-reference"
+                    type="text"
+                    value={editExternalTransactionReference}
+                    onChange={(event) => setEditExternalTransactionReference(event.target.value)}
+                    class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  />
+                </div>
+              </>
+            )}
 
             <div>
               <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1">
@@ -283,8 +351,8 @@ export const ExpenseDetails = () => {
           <div class="w-full md:w-2/3 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-xs flex flex-col gap-6">
             {/* Header: Icon, Amount, Category */}
             <div class="flex flex-col items-center border-b border-outline-variant pb-6">
-              <div class="w-16 h-16 bg-surface-container-low rounded-xl flex items-center justify-center mb-2 text-3xl shadow-xs">
-                {expense.categoryId?.icon || '📦'}
+              <div class="w-16 h-16 bg-surface-container-low rounded-xl flex items-center justify-center mb-2 text-primary shadow-xs">
+                <CategoryIcon name={expense.categoryId?.icon} className="text-3xl" />
               </div>
               <h2 class="font-numeric-display text-[32px] md:text-[36px] text-on-surface font-bold">
                 ₹{expense.amount.toLocaleString('en-IN')}
@@ -316,17 +384,47 @@ export const ExpenseDetails = () => {
                       onClick={() => setIsEditing(true)}
                       class="text-primary font-title-md text-[14px] flex items-center gap-1 hover:bg-surface-container-low px-2 py-1 rounded transition-colors"
                     >
-                      <span class="material-symbols-outlined text-[18px]">edit</span> Edit
+                      <Icon name="edit" className="text-[18px]" /> Edit
                     </button>
                   ) : (
                     <button
                       onClick={() => setIsEditing(true)}
                       class="text-primary font-title-md text-[14px] flex items-center gap-1 hover:bg-surface-container-low px-2 py-1 rounded transition-colors"
                     >
-                      <span class="material-symbols-outlined text-[18px]">add</span> Add Description
+                      <Icon name="add" className="text-[18px]" /> Add Description
                     </button>
                   )}
                 </div>
+                <div class="flex justify-between items-center py-2 border-b border-outline-variant/40">
+                  <span class="font-body-sm text-on-surface-variant uppercase tracking-wider">Type / method</span>
+                  <span class="font-body-lg text-on-surface font-medium capitalize">
+                    {(expense.transactionType || 'expense').replace('-', ' ')} · {expense.paymentMethod || 'other'}
+                  </span>
+                </div>
+                {expense.paymentStatus && (
+                  <div class="flex justify-between items-center py-2 border-b border-outline-variant/40">
+                    <span class="font-body-sm text-on-surface-variant uppercase tracking-wider">Payment status</span>
+                    <span class="font-body-lg text-on-surface font-medium capitalize">{expense.paymentStatus}</span>
+                  </div>
+                )}
+                {expense.merchantName && (
+                  <div class="flex justify-between items-center py-2 border-b border-outline-variant/40">
+                    <span class="font-body-sm text-on-surface-variant uppercase tracking-wider">Merchant</span>
+                    <span class="font-body-lg text-on-surface font-medium">{expense.merchantName}</span>
+                  </div>
+                )}
+                {expense.merchantUpiId && (
+                  <div class="flex justify-between items-center py-2 border-b border-outline-variant/40">
+                    <span class="font-body-sm text-on-surface-variant uppercase tracking-wider">Merchant UPI ID</span>
+                    <span class="font-body-lg text-on-surface font-medium">{expense.merchantUpiId}</span>
+                  </div>
+                )}
+                {expense.externalTransactionReference && (
+                  <div class="flex justify-between items-center py-2 border-b border-outline-variant/40">
+                    <span class="font-body-sm text-on-surface-variant uppercase tracking-wider">Transaction reference</span>
+                    <span class="font-body-lg text-on-surface font-medium">{expense.externalTransactionReference}</span>
+                  </div>
+                )}
                 {expense.description ? (
                   <span class="font-body-lg text-on-surface">{expense.description}</span>
                 ) : (
@@ -340,7 +438,7 @@ export const ExpenseDetails = () => {
               onClick={() => setIsEditing(true)}
               class="w-full min-h-[44px] border border-primary text-primary hover:bg-surface-container-low font-title-md rounded-lg flex items-center justify-center gap-2 transition-colors mt-2"
             >
-              <span class="material-symbols-outlined text-[20px]">edit</span>
+              <Icon name="edit" className="text-[20px]" />
               Edit Expense
             </button>
           </div>
@@ -362,9 +460,7 @@ export const ExpenseDetails = () => {
                       class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                     />
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span class="material-symbols-outlined text-white text-[32px] bg-black/40 rounded-full p-2">
-                        zoom_in
-                      </span>
+                      <Icon name="zoom_in" className="text-white text-[32px] bg-black/40 rounded-full p-2" />
                     </div>
                   </div>
 
@@ -373,13 +469,13 @@ export const ExpenseDetails = () => {
                       onClick={() => setIsEditing(true)}
                       class="flex-1 min-h-[40px] bg-surface border border-outline-variant text-on-surface rounded-lg font-title-md text-[13px] flex items-center justify-center gap-1 hover:bg-surface-container-low transition-colors"
                     >
-                      <span class="material-symbols-outlined text-[16px]">swap_horiz</span> Replace
+                      <Icon name="swap_horiz" className="text-[16px]" /> Replace
                     </button>
                     <button
                       onClick={handleRemoveReceipt}
                       class="flex-1 min-h-[40px] bg-surface border border-error text-error rounded-lg font-title-md text-[13px] flex items-center justify-center gap-1 hover:bg-error-container/40 transition-colors"
                     >
-                      <span class="material-symbols-outlined text-[16px]">delete</span> Remove
+                      <Icon name="delete" className="text-[16px]" /> Remove
                     </button>
                   </div>
                 </div>
@@ -390,7 +486,7 @@ export const ExpenseDetails = () => {
                     onClick={() => setIsEditing(true)}
                     class="px-4 py-2 bg-surface-container text-primary font-title-md text-sm rounded-lg hover:bg-surface-container-high flex items-center gap-1"
                   >
-                    <span class="material-symbols-outlined text-[18px]">add</span> Add Receipt
+                    <Icon name="add" className="text-[18px]" /> Add Receipt
                   </button>
                 </div>
               )}
@@ -401,7 +497,7 @@ export const ExpenseDetails = () => {
               onClick={() => setShowDeleteModal(true)}
               class="w-full min-h-[48px] bg-surface-container-lowest border border-error text-error rounded-xl font-title-md flex items-center justify-center gap-2 hover:bg-error-container/40 transition-colors active:scale-98"
             >
-              <span class="material-symbols-outlined">delete</span>
+              <Icon name="delete" className="" />
               Delete Expense
             </button>
           </div>
@@ -449,7 +545,7 @@ export const ExpenseDetails = () => {
               onClick={() => setShowImageZoom(false)}
               class="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black"
             >
-              <span class="material-symbols-outlined">close</span>
+              <Icon name="close" className="" />
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -92,7 +93,7 @@ export const SignUp = () => {
 
         {error && (
           <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px]">error</span>
+            <Icon name="error" className="text-[20px]" />
             <span>{error}</span>
           </div>
         )}
@@ -151,9 +152,7 @@ export const SignUp = () => {
                 class="absolute right-3 p-1 text-on-surface-variant hover:text-on-surface transition-colors rounded-full"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <span class="material-symbols-outlined text-[20px]">
-                  {showPassword ? 'visibility_off' : 'visibility'}
-                </span>
+                <Icon name={showPassword ? 'visibility_off' : 'visibility'} className="text-[20px]" />
               </button>
             </div>
             <span class="font-body-sm text-[12px] text-outline mt-0.5">At least 8 characters</span>
@@ -180,9 +179,7 @@ export const SignUp = () => {
                 class="absolute right-3 p-1 text-on-surface-variant hover:text-on-surface transition-colors rounded-full"
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                <span class="material-symbols-outlined text-[20px]">
-                  {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                </span>
+                <Icon name={showConfirmPassword ? 'visibility_off' : 'visibility'} className="text-[20px]" />
               </button>
             </div>
           </div>

@@ -9,10 +9,10 @@ const LOCAL_CATEGORIES_KEY = 'kharcha_cached_categories';
 
 // Default categories fallback so user can always immediately categorize even on 1st cold start
 const DEFAULT_FALLBACK_CATEGORIES = [
-  { _id: 'food_default', name: 'Food & Dining', icon: '🍔', sortOrder: 1 },
-  { _id: 'shopping_default', name: 'Shopping', icon: '🛍️', sortOrder: 2 },
-  { _id: 'transport_default', name: 'Transportation', icon: '🚗', sortOrder: 3 },
-  { _id: 'bills_default', name: 'Bills & Utilities', icon: '💡', sortOrder: 4 },
+  { _id: 'food_default', name: 'Food & Dining', icon: 'utensils', sortOrder: 1 },
+  { _id: 'shopping_default', name: 'Shopping', icon: 'shopping', sortOrder: 2 },
+  { _id: 'transport_default', name: 'Transportation', icon: 'car', sortOrder: 3 },
+  { _id: 'bills_default', name: 'Bills & Utilities', icon: 'lightbulb', sortOrder: 4 },
 ];
 
 export const CategoryProvider = ({ children }) => {

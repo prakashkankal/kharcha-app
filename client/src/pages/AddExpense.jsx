@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { CategoryIcon, Icon } from '../components/Icon.jsx';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCategory } from '../context/CategoryContext';
 import { expenseApi } from '../services/expenseApi';
 
 export const AddExpense = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { categories, loadingCategories } = useCategory();
 
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [receiptFile, setReceiptFile] = useState(null);
-  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(() =>
+    typeof File !== 'undefined' && location.state?.receiptFile instanceof File
+      ? location.state.receiptFile
+      : null
+  );
+  const [receiptPreview, setReceiptPreview] = useState(() => location.state?.receiptPreview || null);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -25,6 +31,12 @@ export const AddExpense = () => {
       setSelectedCategory(categories[0]._id);
     }
   }, [categories, selectedCategory]);
+
+  useEffect(() => {
+    if (location.state?.receiptFile instanceof File) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const handleReceiptChange = (e) => {
     const file = e.target.files[0];
@@ -105,7 +117,7 @@ export const AddExpense = () => {
         {/* Feedback alerts */}
         {error && (
           <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px]">error</span>
+            <Icon name="error" className="text-[20px]" />
             <span>{error}</span>
           </div>
         )}
@@ -113,7 +125,7 @@ export const AddExpense = () => {
         {successMsg && (
           <div class="mb-4 bg-secondary-container text-on-secondary-container px-4 py-3 rounded-lg font-body-sm flex items-center justify-between border border-secondary/20">
             <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px]">check_circle</span>
+              <Icon name="check_circle" className="text-[20px]" />
               <span class="font-medium">{successMsg}</span>
             </div>
             <button
@@ -165,12 +177,12 @@ export const AddExpense = () => {
                   {showAllCategories ? (
                     <>
                       <span>Show less</span>
-                      <span class="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
+                      <Icon name="keyboard_arrow_up" className="text-[16px]" />
                     </>
                   ) : (
                     <>
                       <span>More</span>
-                      <span class="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+                      <Icon name="keyboard_arrow_down" className="text-[16px]" />
                     </>
                   )}
                 </button>
@@ -193,7 +205,7 @@ export const AddExpense = () => {
                           : 'bg-surface-bright border-outline-variant text-on-surface-variant hover:bg-surface-container-low'
                       }`}
                     >
-                      <span class="text-lg mb-0.5">{cat.icon || '📦'}</span>
+                      <CategoryIcon name={cat.icon} className="text-lg mb-0.5" />
                       <span class="font-body-sm text-[13px] truncate w-full text-center">{cat.name}</span>
                     </button>
                   );
@@ -223,9 +235,7 @@ export const AddExpense = () => {
                 Date
               </label>
               <div class="relative">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">
-                  calendar_today
-                </span>
+                <Icon name="calendar_today" className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]" />
                 <input
                   id="date"
                   type="date"
@@ -258,7 +268,7 @@ export const AddExpense = () => {
                   class="p-2 text-error hover:bg-error-container/40 rounded-full transition-colors"
                   title="Remove receipt"
                 >
-                  <span class="material-symbols-outlined text-[20px]">delete</span>
+                  <Icon name="delete" className="text-[20px]" />
                 </button>
               </div>
             ) : (
@@ -269,9 +279,7 @@ export const AddExpense = () => {
                   onChange={handleReceiptChange}
                   class="hidden"
                 />
-                <span class="material-symbols-outlined text-[26px] text-primary mb-0.5 group-hover:scale-110 transition-transform">
-                  upload_file
-                </span>
+                <Icon name="upload_file" className="text-[26px] text-primary mb-0.5 group-hover:scale-110 transition-transform" />
                 <span class="font-body-lg text-primary font-medium">+ Add Receipt</span>
                 <span class="font-body-sm text-[12px] text-on-surface-variant mt-0.5">
                   PNG, JPG or WebP (max 5MB)
@@ -290,7 +298,7 @@ export const AddExpense = () => {
               <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
               <>
-                <span class="material-symbols-outlined">add</span>
+                <Icon name="add" className="" />
                 Add Expense
               </>
             )}

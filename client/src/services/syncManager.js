@@ -2,10 +2,11 @@
 import {
   localDbGetSyncQueue,
   localDbRemoveFromSyncQueue,
+  localDbAddToSyncQueue,
   localDbSaveExpense,
   localDbSaveExpenses,
   localDbDeleteExpense,
-  localDbGetExpenses,
+  localDbGetExpenseById,
 } from './localDb';
 import { apiFetch, getAuthToken } from './api';
 
@@ -174,12 +175,29 @@ class SyncManager {
   }
 
   async syncCreateExpense(item) {
-    const { tempId, payload } = item;
+    const queuedItem = (await localDbGetSyncQueue()).find((entry) => entry.queueId === item.queueId);
+    if (!queuedItem) return;
+    const { tempId, payload } = queuedItem;
     const formData = new FormData();
     formData.append('amount', payload.amount);
     formData.append('categoryId', payload.categoryId);
     formData.append('date', payload.date);
     if (payload.description) formData.append('description', payload.description);
+    for (const field of [
+      'transactionType',
+      'paymentMethod',
+      'paymentStatus',
+      'fromWallet',
+      'toWallet',
+      'merchantName',
+      'merchantUpiId',
+      'externalTransactionReference',
+      'selectedPaymentApp',
+    ]) {
+      if (payload[field] !== undefined && payload[field] !== '') {
+        formData.append(field, payload[field]);
+      }
+    }
 
     // If receipt was captured as base64 dataUrl offline, convert to Blob
     if (payload.receiptDataUrl && payload.receiptName) {
@@ -195,11 +213,35 @@ class SyncManager {
 
     // Replace the local temporary expense record with the real server record
     if (tempId && createdOnServer && createdOnServer._id) {
+      const localTemporaryExpense = await localDbGetExpenseById(tempId);
+      const latestQueueItem = (await localDbGetSyncQueue()).find((entry) => entry.queueId === item.queueId);
       await localDbDeleteExpense(tempId);
-      await localDbSaveExpense({
+
+      if (!latestQueueItem) {
+        await localDbAddToSyncQueue({
+          type: 'DELETE',
+          id: createdOnServer._id,
+        });
+        return;
+      }
+
+      const localServerExpense = {
         ...createdOnServer,
+        ...(localTemporaryExpense || {}),
+        _id: createdOnServer._id,
         syncStatus: 'synced',
-      });
+      };
+      await localDbSaveExpense(localServerExpense);
+
+      if (JSON.stringify(latestQueueItem.payload) !== JSON.stringify(payload)) {
+        localServerExpense.syncStatus = 'pending';
+        await localDbSaveExpense(localServerExpense);
+        await localDbAddToSyncQueue({
+          type: 'UPDATE',
+          id: createdOnServer._id,
+          payload: latestQueueItem.payload,
+        });
+      }
     }
   }
 
@@ -210,6 +252,19 @@ class SyncManager {
     if (payload.categoryId) formData.append('categoryId', payload.categoryId);
     if (payload.date) formData.append('date', payload.date);
     if (payload.description !== undefined) formData.append('description', payload.description);
+    for (const field of [
+      'transactionType',
+      'paymentMethod',
+      'paymentStatus',
+      'fromWallet',
+      'toWallet',
+      'merchantName',
+      'merchantUpiId',
+      'externalTransactionReference',
+      'selectedPaymentApp',
+    ]) {
+      if (payload[field] !== undefined) formData.append(field, payload[field]);
+    }
     if (payload.removeReceipt) formData.append('removeReceipt', 'true');
 
     if (payload.receiptDataUrl && payload.receiptName) {

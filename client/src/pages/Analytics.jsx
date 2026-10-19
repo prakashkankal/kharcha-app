@@ -1,3 +1,4 @@
+import { Icon } from '../components/Icon.jsx';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart,
@@ -17,6 +18,7 @@ import {
 import { expenseApi } from '../services/expenseApi';
 import { useCategory } from '../context/CategoryContext';
 import { localDbGetExpenses } from '../services/localDb';
+import { getSpendingTotal, getTransactionType, isConfirmedTransaction } from '../services/transactionUtils';
 
 // --- Palette for pie chart slices ---
 const PALETTE = [
@@ -147,16 +149,20 @@ export const Analytics = () => {
     return { start, end, rangeLabel: `${start.getFullYear()}` };
   }, [period, offset]);
 
-  // Filter expenses to current range
-  const filteredExpenses = useMemo(() => {
+  const filteredTransactions = useMemo(() => {
     return allExpenses.filter((e) => {
       const d = new Date(e.date || e.createdAt);
       return d >= start && d <= end;
     });
   }, [allExpenses, start, end]);
 
+  const filteredExpenses = useMemo(
+    () => filteredTransactions.filter((e) => getTransactionType(e) === 'expense' && isConfirmedTransaction(e)),
+    [filteredTransactions]
+  );
+
   const totalSpend = useMemo(
-    () => filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
+    () => getSpendingTotal(filteredExpenses),
     [filteredExpenses]
   );
 
@@ -225,8 +231,7 @@ export const Analytics = () => {
     filteredExpenses.forEach((e) => {
       const catId = e.categoryId?._id || e.categoryId || 'unknown';
       const catName = e.categoryId?.name || categories.find((c) => c._id === catId)?.name || 'Other';
-      const catIcon = e.categoryId?.icon || categories.find((c) => c._id === catId)?.icon || '📦';
-      if (!catMap[catId]) catMap[catId] = { name: `${catIcon} ${catName}`, value: 0 };
+      if (!catMap[catId]) catMap[catId] = { name: catName, value: 0 };
       catMap[catId].value += Number(e.amount) || 0;
     });
     const entries = Object.values(catMap).filter((d) => d.value > 0);
@@ -237,6 +242,35 @@ export const Analytics = () => {
   }, [filteredExpenses, categories]);
 
   const canGoNext = offset < 0;
+
+  const handleExportCsv = () => {
+    const escapeCsv = (value) => {
+      const text = String(value ?? '');
+      const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safeText.replaceAll('"', '""')}"`;
+    };
+    const rows = [
+      ['Date', 'Type', 'Amount INR', 'Category', 'Payment method', 'Status', 'Merchant', 'UPI ID', 'Description'],
+      ...filteredTransactions.map((expense) => [
+        new Date(expense.date || expense.createdAt).toISOString(),
+        getTransactionType(expense),
+        expense.amount,
+        expense.categoryId?.name || 'Other',
+        expense.paymentMethod || 'other',
+        expense.paymentStatus || 'success',
+        expense.merchantName || '',
+        expense.merchantUpiId || '',
+        expense.description || '',
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kharcha-transactions-${rangeLabel}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
 
   return (
     <div class="w-full max-w-[1024px] mx-auto min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-8">
@@ -268,7 +302,7 @@ export const Analytics = () => {
           class="p-2 rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"
           aria-label="Previous period"
         >
-          <span class="material-symbols-outlined">chevron_left</span>
+          <Icon name="chevron_left" className="" />
         </button>
         <p class="font-semibold text-on-surface text-base">{rangeLabel}</p>
         <button
@@ -278,7 +312,18 @@ export const Analytics = () => {
           class={`p-2 rounded-full transition-colors ${canGoNext ? 'hover:bg-surface-container text-on-surface-variant' : 'text-outline opacity-40 cursor-not-allowed'}`}
           aria-label="Next period"
         >
-          <span class="material-symbols-outlined">chevron_right</span>
+          <Icon name="chevron_right" className="" />
+        </button>
+      </div>
+      <div class="flex justify-end -mt-4">
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          disabled={filteredTransactions.length === 0}
+          class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-outline-variant text-primary text-sm font-semibold hover:bg-surface-container-low disabled:opacity-50"
+        >
+          <Icon name="download" className="text-[18px]" />
+          Export CSV
         </button>
       </div>
 
@@ -294,7 +339,7 @@ export const Analytics = () => {
             class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 flex flex-col gap-1.5 shadow-xs"
           >
             <div class={`flex items-center gap-1.5 ${card.color}`}>
-              <span class="material-symbols-outlined text-[18px]">{card.icon}</span>
+              <Icon name={card.icon} className="text-[18px]" />
               <span class="text-xs font-medium">{card.label}</span>
             </div>
             <p class="font-bold text-on-surface text-[15px] md:text-[18px] leading-tight">{card.value}</p>
@@ -315,7 +360,7 @@ export const Analytics = () => {
           </div>
         ) : filteredExpenses.length === 0 ? (
           <div class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant gap-2">
-            <span class="material-symbols-outlined text-[48px] text-outline">bar_chart</span>
+            <Icon name="bar_chart" className="text-[48px] text-outline" />
             <p class="text-sm">No expenses in this period</p>
           </div>
         ) : (
@@ -324,21 +369,21 @@ export const Analytics = () => {
                 <BarChart data={barData} margin={{ top: 0, right: 2, left: -16, bottom: 8 }} barCategoryGap="30%">
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant, #6b7280)' }}
+                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
                     axisLine={false}
                     tickLine={false}
                     interval={0}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant, #6b7280)' }}
+                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
                     axisLine={false}
                     tickLine={false}
                     domain={period === 'week' ? [0, weeklyYAxisMax] : undefined}
                     ticks={period === 'week' ? weeklyYAxisTicks : undefined}
                     tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
                   />
-                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(99,102,241,0.06)', radius: 8 }} />
-                  <Bar dataKey="total" fill="#6366f1" radius={[5, 5, 0, 0]} maxBarSize={40} />
+                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'var(--color-surface-container)', radius: 8 }} />
+                  <Bar dataKey="total" fill="var(--color-primary)" radius={[5, 5, 0, 0]} maxBarSize={40} />
                 </BarChart>
           </ResponsiveContainer>
           </div>
@@ -402,12 +447,12 @@ export const Analytics = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(156,163,175,0.15)" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant, #6b7280)' }}
+                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant, #6b7280)' }}
+                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
@@ -416,9 +461,9 @@ export const Analytics = () => {
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="#6366f1"
+                    stroke="var(--color-primary)"
                     strokeWidth={2.5}
-                    dot={{ fill: '#6366f1', r: 4, strokeWidth: 0 }}
+                    dot={{ fill: 'var(--color-primary)', r: 4, strokeWidth: 0 }}
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
@@ -431,7 +476,7 @@ export const Analytics = () => {
       {/* No data at all */}
       {!loading && filteredExpenses.length === 0 && (
         <div class="flex flex-col items-center justify-center text-center py-12 text-on-surface-variant gap-3">
-          <span class="material-symbols-outlined text-[52px] text-outline">insights</span>
+          <Icon name="insights" className="text-[52px] text-outline" />
           <p class="font-semibold text-on-surface">No data yet</p>
           <p class="text-sm">Add some expenses to see your analytics here.</p>
         </div>

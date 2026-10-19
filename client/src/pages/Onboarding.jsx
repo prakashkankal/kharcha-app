@@ -1,3 +1,4 @@
+import { CategoryIcon, Icon } from '../components/Icon.jsx';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -75,7 +76,7 @@ export const Onboarding = () => {
 
         {error && (
           <div class="mb-5 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px]">error</span>
+            <Icon name="error" className="text-[20px]" />
             <span>{error}</span>
           </div>
         )}
@@ -119,7 +120,7 @@ export const Onboarding = () => {
                           : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high border-outline-variant'
                       }`}
                     >
-                      <span class="text-xl">{category.icon || '📦'}</span>
+                      <CategoryIcon name={category.icon} className="text-xl" />
                       <span class="font-body-sm text-center leading-tight">{category.name}</span>
                     </button>
                   );

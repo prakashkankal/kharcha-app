@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCategory } from '../context/CategoryContext';
-
-const EMOJI_OPTIONS = ['🍔', '🚌', '🛍', '📚', '💡', '🎮', '❤️', '🏋️', '☕', '🚗', '🎬', '✈️', '💊', '🏠', '🎁', '📦'];
+import { CategoryIcon, Icon } from '../components/Icon.jsx';
+import { CATEGORY_ICON_OPTIONS, normalizeIconName } from '../components/iconRegistry';
 
 export const Categories = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export const Categories = () => {
 
   // Form states
   const [catName, setCatName] = useState('');
-  const [catIcon, setCatIcon] = useState('📦');
+  const [catIcon, setCatIcon] = useState('package');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +52,7 @@ export const Categories = () => {
 
   const handleOpenAdd = () => {
     setCatName('');
-    setCatIcon('🏋️');
+    setCatIcon('fitness');
     setError('');
     setShowAddModal(true);
   };
@@ -60,7 +60,7 @@ export const Categories = () => {
   const handleOpenEdit = (cat) => {
     setEditingCat(cat);
     setCatName(cat.name);
-    setCatIcon(cat.icon || '📦');
+    setCatIcon(normalizeIconName(cat.icon));
     setError('');
   };
 
@@ -109,7 +109,7 @@ export const Categories = () => {
           onClick={() => navigate('/profile')}
           class="text-primary flex items-center gap-1 p-2 rounded hover:bg-surface-container-low transition-colors"
         >
-          <span class="material-symbols-outlined">arrow_back</span>
+          <Icon name="arrow_back" className="" />
           <span class="font-title-md">Back to Profile</span>
         </button>
         <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Categories</h1>
@@ -122,7 +122,7 @@ export const Categories = () => {
 
       {error && (
         <div class="mb-4 bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2">
-          <span class="material-symbols-outlined text-[20px]">error</span>
+          <Icon name="error" className="text-[20px]" />
           <span>{error}</span>
         </div>
       )}
@@ -144,7 +144,7 @@ export const Categories = () => {
                   title="Move Up"
                   class="p-1 text-on-surface-variant hover:text-primary disabled:opacity-20 disabled:hover:text-on-surface-variant transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+                  <Icon name="keyboard_arrow_up" className="text-[18px]" />
                 </button>
                 <button
                   type="button"
@@ -153,12 +153,12 @@ export const Categories = () => {
                   title="Move Down"
                   class="p-1 text-on-surface-variant hover:text-primary disabled:opacity-20 disabled:hover:text-on-surface-variant transition-colors"
                 >
-                  <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                  <Icon name="keyboard_arrow_down" className="text-[18px]" />
                 </button>
               </div>
 
-              <div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-xl shrink-0">
-                {cat.icon || '📦'}
+              <div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary shrink-0">
+                <CategoryIcon name={cat.icon} className="text-xl" />
               </div>
               <div class="flex flex-col">
                 <span class="font-title-md text-title-md text-on-surface font-medium">{cat.name}</span>
@@ -191,7 +191,7 @@ export const Categories = () => {
         onClick={handleOpenAdd}
         class="w-full h-12 bg-primary text-on-primary rounded-full font-title-md flex items-center justify-center gap-2 hover:bg-primary-container active:scale-98 transition-all shadow-xs"
       >
-        <span class="material-symbols-outlined text-[20px]">add</span>
+        <Icon name="add" className="text-[20px]" />
         Add Category
       </button>
 
@@ -223,16 +223,17 @@ export const Categories = () => {
                   Select Icon
                 </label>
                 <div class="grid grid-cols-8 gap-2 p-2 bg-surface-bright border border-outline-variant rounded-lg">
-                  {EMOJI_OPTIONS.map((emoji) => (
+                  {CATEGORY_ICON_OPTIONS.map((iconName) => (
                     <button
-                      key={emoji}
+                      key={iconName}
                       type="button"
-                      onClick={() => setCatIcon(emoji)}
-                      class={`w-8 h-8 flex items-center justify-center text-lg rounded ${
-                        catIcon === emoji ? 'bg-primary text-white' : 'hover:bg-surface-container'
+                      onClick={() => setCatIcon(iconName)}
+                      aria-label={`Select ${iconName} icon`}
+                      class={`w-8 h-8 flex items-center justify-center rounded ${
+                        catIcon === iconName ? 'bg-primary text-white' : 'hover:bg-surface-container'
                       }`}
                     >
-                      {emoji}
+                      <Icon name={iconName} className="text-lg" />
                     </button>
                   ))}
                 </div>

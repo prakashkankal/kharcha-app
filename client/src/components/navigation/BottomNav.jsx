@@ -1,3 +1,4 @@
+import { Icon } from '../Icon.jsx';
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -6,49 +7,37 @@ export const BottomNav = () => {
   const path = location.pathname;
 
   return (
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-outline-variant pb-safe flex justify-around items-center h-16 px-2 z-50 shadow-sm">
-      {/* Add Expense (Default Main Screen) */}
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface/95 backdrop-blur border-t border-outline-variant pb-safe grid grid-cols-2 items-center h-[76px] px-5 z-50 shadow-[0_-8px_24px_rgba(19,27,46,0.08)]">
       <Link
-        to="/add-expense"
-        class={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
-          path === '/add-expense' || path === '/'
-            ? 'text-primary font-bold'
-            : 'text-on-surface-variant hover:text-primary'
+        to="/dashboard"
+        class={`relative flex flex-col items-center justify-center h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
+          path === '/dashboard' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
         }`}
       >
-        <span
-          class={`material-symbols-outlined text-[24px] mb-0.5 ${
-            path === '/add-expense' || path === '/' ? 'icon-fill' : ''
-          }`}
-        >
-          add_circle
+        {path === '/dashboard' && <span class="absolute top-0 w-16 h-1 rounded-full bg-primary" />}
+        <Icon name="dashboard" className="text-[24px] mb-0.5" />
+        <span class="font-label-caps text-[11px]">Dashboard</span>
+      </Link>
+
+      <Link
+        to="/add-expense"
+        aria-label="Add expense"
+        class="absolute left-1/2 -translate-x-1/2 -top-5 flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform"
+      >
+        <span class="w-[68px] h-[68px] rounded-full bg-primary text-on-primary border-4 border-background shadow-lg flex items-center justify-center">
+          <Icon name="add" className="text-[32px]" />
         </span>
         <span class="font-label-caps text-[11px]">Add Expense</span>
       </Link>
 
-      {/* Dashboard */}
-      <Link
-        to="/dashboard"
-        class={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
-          path === '/dashboard' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
-        }`}
-      >
-        <span class={`material-symbols-outlined text-[24px] mb-0.5 ${path === '/dashboard' ? 'icon-fill' : ''}`}>
-          dashboard
-        </span>
-        <span class="font-label-caps text-[11px]">Dashboard</span>
-      </Link>
-
-      {/* Analytics */}
       <Link
         to="/analytics"
-        class={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
+        class={`relative flex flex-col items-center justify-center h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
           path === '/analytics' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
         }`}
       >
-        <span class={`material-symbols-outlined text-[24px] mb-0.5 ${path === '/analytics' ? 'icon-fill' : ''}`}>
-          bar_chart
-        </span>
+        {path === '/analytics' && <span class="absolute top-0 w-16 h-1 rounded-full bg-primary" />}
+        <Icon name="bar_chart" className="text-[24px] mb-0.5" />
         <span class="font-label-caps text-[11px]">Analytics</span>
       </Link>
     </nav>

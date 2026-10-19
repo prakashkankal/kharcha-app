@@ -65,6 +65,16 @@ const userSchema = new mongoose.Schema(
         min: 0,
         default: 0,
       },
+      openingCashBalance: {
+        type: Number,
+        min: 0,
+        default: 0,
+      },
+      openingBankBalance: {
+        type: Number,
+        min: 0,
+        default: 0,
+      },
       onboardingCompleted: {
         type: Boolean,
         default: true,

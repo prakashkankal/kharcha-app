@@ -1,3 +1,4 @@
+import { Icon } from './Icon.jsx';
 import React, { useState, useEffect } from 'react';
 
 export const InstallPwaPrompt = () => {
@@ -59,7 +60,7 @@ export const InstallPwaPrompt = () => {
           class="p-1 text-on-surface-variant hover:text-on-surface rounded-full"
           aria-label="Dismiss prompt"
         >
-          <span class="material-symbols-outlined text-[18px]">close</span>
+          <Icon name="close" className="text-[18px]" />
         </button>
       </div>
     </div>

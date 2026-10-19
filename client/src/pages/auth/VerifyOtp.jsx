@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon.jsx';
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -129,7 +130,7 @@ export const VerifyOtp = () => {
         {/* Error Alert */}
         {error && (
           <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
+            <Icon name="error" className="text-[20px] shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -137,7 +138,7 @@ export const VerifyOtp = () => {
         {/* Info Alert */}
         {infoMsg && (
           <div class="bg-secondary-container text-on-secondary-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-secondary/20">
-            <span class="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
+            <Icon name="check_circle" className="text-[20px] shrink-0" />
             <span>{infoMsg}</span>
           </div>
         )}
@@ -192,7 +193,7 @@ export const VerifyOtp = () => {
 
           <div class="mt-2">
             <Link to="/signup" class="font-body-sm text-outline hover:text-on-surface flex items-center gap-1 transition-colors">
-              <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+              <Icon name="arrow_back" className="text-[16px]" />
               Back to Sign Up
             </Link>
           </div>

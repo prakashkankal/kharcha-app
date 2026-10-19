@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -81,7 +82,7 @@ export const Login = () => {
         {/* Error Alert */}
         {error && (
           <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg font-body-sm flex items-center gap-2 border border-error/20">
-            <span class="material-symbols-outlined text-[20px]">error</span>
+            <Icon name="error" className="text-[20px]" />
             <span>{error}</span>
           </div>
         )}
@@ -99,7 +100,7 @@ export const Login = () => {
                 Email
               </label>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">mail</span>
+                <Icon name="mail" className="text-outline mr-3" />
                 <input
                   id="email"
                   name="email"
@@ -127,7 +128,7 @@ export const Login = () => {
                 </Link>
               </div>
               <div class="flex items-center border border-outline-variant rounded-lg bg-surface-container-lowest h-12 px-4 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
-                <span class="material-symbols-outlined text-outline mr-3">lock</span>
+                <Icon name="lock" className="text-outline mr-3" />
                 <input
                   id="password"
                   name="password"
@@ -144,9 +145,7 @@ export const Login = () => {
                   class="ml-2 text-outline hover:text-on-surface focus:outline-none"
                   aria-label="Toggle password visibility"
                 >
-                  <span class="material-symbols-outlined">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
+                  <Icon name={showPassword ? 'visibility_off' : 'visibility'} />
                 </button>
               </div>
             </div>
