@@ -1,15 +1,17 @@
 import Expense from '../models/Expense.js';
 import Category from '../models/Category.js';
 import User from '../models/User.js';
+import SplitParticipant from '../models/SplitParticipant.js';
 
 export const exportData = async (req, res, next) => {
   try {
     const categories = await Category.find({ userId: req.user._id });
     const expenses = await Expense.find({ userId: req.user._id }).populate('categoryId', 'name icon');
+    const participants = await SplitParticipant.find({ userId: req.user._id });
 
     const backupPayload = {
       app: 'Kharcha',
-      version: '1.0.0',
+      version: '1.1.0',
       exportedAt: new Date().toISOString(),
       user: {
         name: req.user.name,
@@ -41,6 +43,18 @@ export const exportData = async (req, res, next) => {
         merchantUpiId: e.merchantUpiId || '',
         externalTransactionReference: e.externalTransactionReference || '',
         selectedPaymentApp: e.selectedPaymentApp || '',
+        isSplit: Boolean(e.isSplit),
+      })),
+      splitParticipants: participants.map((p) => ({
+        id: p._id,
+        expenseId: p.expenseId,
+        personName: p.personName,
+        participantUserId: p.participantUserId,
+        isCurrentUser: p.isCurrentUser,
+        shareAmount: p.shareAmount,
+        amountPaidBack: p.amountPaidBack,
+        paymentStatus: p.paymentStatus,
+        paymentHistory: p.paymentHistory,
       })),
     };
 
@@ -54,7 +68,7 @@ export const exportData = async (req, res, next) => {
 
 export const importData = async (req, res, next) => {
   try {
-    const { expenses, categories, settings } = req.body;
+    const { expenses, categories, settings, splitParticipants } = req.body;
 
     if (!Array.isArray(expenses)) {
       return res.status(400).json({ message: 'Invalid backup format: expenses array required' });
@@ -103,12 +117,14 @@ export const importData = async (req, res, next) => {
     }
 
     let importedCount = 0;
+    const oldExpenseIdToNew = new Map();
+
     for (const exp of expenses) {
       if (exp.amount && exp.date) {
         const catName = exp.category ? exp.category.toLowerCase() : 'other';
         const categoryId = categoryMap.get(catName) || defaultCatId;
 
-        await Expense.create({
+        const created = await Expense.create({
           userId: req.user._id,
           categoryId,
           amount: parseFloat(exp.amount),
@@ -123,9 +139,36 @@ export const importData = async (req, res, next) => {
           externalTransactionReference: exp.externalTransactionReference || '',
           selectedPaymentApp: exp.selectedPaymentApp || '',
           receiptUrl: exp.receiptUrl || null,
+          isSplit: Boolean(exp.isSplit),
           date: new Date(exp.date),
         });
+        if (exp.id) {
+          oldExpenseIdToNew.set(String(exp.id), created._id);
+        }
         importedCount++;
+      }
+    }
+
+    if (Array.isArray(splitParticipants)) {
+      for (const sp of splitParticipants) {
+        const newExpenseId = oldExpenseIdToNew.get(String(sp.expenseId));
+        if (newExpenseId && sp.personName && sp.shareAmount) {
+          const sharePaise = Math.round(Number(sp.shareAmount) * 100);
+          const paidPaise = Math.round(Number(sp.amountPaidBack || 0) * 100);
+          await SplitParticipant.create({
+            expenseId: newExpenseId,
+            userId: req.user._id,
+            personName: sp.personName,
+            participantUserId: sp.participantUserId || null,
+            isCurrentUser: Boolean(sp.isCurrentUser),
+            shareAmount: Number(sp.shareAmount),
+            shareAmountPaise: sharePaise,
+            amountPaidBack: paidPaise / 100,
+            amountPaidBackPaise: paidPaise,
+            paymentStatus: (paidPaise >= sharePaise) ? 'RECEIVED' : (paidPaise > 0 ? 'PARTIALLY_PAID' : 'PENDING'),
+            paymentHistory: Array.isArray(sp.paymentHistory) ? sp.paymentHistory : [],
+          });
+        }
       }
     }
 
@@ -146,6 +189,7 @@ export const clearAllData = async (req, res, next) => {
       return res.status(400).json({ message: 'Confirmation is required to delete all user data' });
     }
 
+    await SplitParticipant.deleteMany({ userId: req.user._id });
     await Expense.deleteMany({ userId: req.user._id });
     res.json({ message: 'All expense data has been deleted permanently.' });
   } catch (error) {

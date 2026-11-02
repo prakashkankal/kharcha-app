@@ -63,3 +63,47 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (error) {
+    console.error('Could not parse push notification payload:', error);
+    return;
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Kharcha', {
+      body: payload.body || "Don't forget to add today's expenses.",
+      icon: '/logo.png',
+      badge: '/logo.png',
+      data: { url: payload.url || '/add-expense' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = new URL(
+    (event.notification.data && event.notification.data.url) || '/add-expense',
+    self.location.origin
+  );
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (new URL(client.url).origin === targetUrl.origin && 'focus' in client) {
+          return client.navigate(targetUrl.href).then((navigatedClient) =>
+            (navigatedClient || client).focus()
+          );
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl.href);
+      }
+    })
+  );
+});

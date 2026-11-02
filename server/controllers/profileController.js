@@ -22,6 +22,7 @@ export const updateProfile = async (req, res, next) => {
       openingCashBalance,
       openingBankBalance,
       onboardingCompleted,
+      notifications,
       profileImage,
     } = req.body;
     const user = await User.findById(req.user._id);
@@ -73,6 +74,69 @@ export const updateProfile = async (req, res, next) => {
       }
       if (!user.settings) user.settings = {};
       user.settings.onboardingCompleted = onboardingCompleted;
+    }
+
+    if (notifications !== undefined) {
+      if (!notifications || typeof notifications !== 'object' || Array.isArray(notifications)) {
+        return res.status(400).json({ message: 'Please provide valid reminder settings' });
+      }
+
+      const currentNotifications = user.settings?.notifications || {};
+      const timeZone = notifications.timezone ?? currentNotifications.timezone ?? 'Asia/Kolkata';
+      const reminders =
+        notifications.reminders ??
+        (typeof notifications.enabled === 'boolean'
+          ? [
+              {
+                enabled: notifications.enabled,
+                time: notifications.time ?? currentNotifications.time ?? '21:00',
+                message:
+                  notifications.message ??
+                  currentNotifications.message ??
+                  "Don't forget to add today's expenses in Kharcha!",
+              },
+              { enabled: false, time: '18:00', message: 'Have you added your afternoon expenses?' },
+              { enabled: false, time: '21:00', message: "Don't forget to log today's expenses before the day ends!" },
+            ]
+          : undefined);
+
+      if (
+        !Array.isArray(reminders) ||
+        reminders.length !== 3 ||
+        reminders.some(
+          (reminder) =>
+            !reminder ||
+            typeof reminder.enabled !== 'boolean' ||
+            typeof reminder.time !== 'string' ||
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(reminder.time) ||
+            typeof reminder.message !== 'string' ||
+            !reminder.message.trim() ||
+            reminder.message.trim().length > 140
+        ) ||
+        typeof timeZone !== 'string' ||
+        timeZone.length > 100
+      ) {
+        return res.status(400).json({ message: 'Please provide valid reminder settings' });
+      }
+
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone });
+      } catch {
+        return res.status(400).json({ message: 'Please provide a valid reminder time zone' });
+      }
+
+      if (!user.settings) user.settings = {};
+      user.settings.notifications = {
+        enabled: reminders.some((reminder) => reminder.enabled),
+        time: reminders[0].time,
+        message: reminders[0].message.trim(),
+        timezone: timeZone,
+        reminders: reminders.map((reminder) => ({
+          enabled: reminder.enabled,
+          time: reminder.time,
+          message: reminder.message.trim(),
+        })),
+      };
     }
 
     if (profileImage !== undefined) {

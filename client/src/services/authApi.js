@@ -1,4 +1,9 @@
-import { apiFetch, setAuthToken } from './api';
+import { apiFetch, setAuthToken, setRefreshToken } from './api';
+
+const saveSessionTokens = ({ token, refreshToken }) => {
+  if (token) setAuthToken(token);
+  if (refreshToken) setRefreshToken(refreshToken);
+};
 
 export const authApi = {
   login: async (credentials) => {
@@ -6,9 +11,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    if (data.token) {
-      setAuthToken(data.token);
-    }
+    saveSessionTokens(data);
     return data;
   },
 
@@ -17,9 +20,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(userData),
     });
-    if (data.token) {
-      setAuthToken(data.token);
-    }
+    saveSessionTokens(data);
     return data;
   },
 
@@ -28,9 +29,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(googleData),
     });
-    if (data.token) {
-      setAuthToken(data.token);
-    }
+    saveSessionTokens(data);
     return data;
   },
 
@@ -39,9 +38,7 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(otpData),
     });
-    if (data.token) {
-      setAuthToken(data.token);
-    }
+    saveSessionTokens(data);
     return data;
   },
 
@@ -72,5 +69,6 @@ export const authApi = {
 
   logout: () => {
     setAuthToken(null);
+    setRefreshToken(null);
   },
 };

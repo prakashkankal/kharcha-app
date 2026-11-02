@@ -77,6 +77,11 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isSplit: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     date: {
       type: Date,
       required: [true, 'Date is required'],

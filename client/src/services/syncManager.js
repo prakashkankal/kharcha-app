@@ -7,6 +7,7 @@ import {
   localDbSaveExpenses,
   localDbDeleteExpense,
   localDbGetExpenseById,
+  localDbRecalculateDashboardCache,
 } from './localDb';
 import { apiFetch, getAuthToken } from './api';
 
@@ -149,6 +150,8 @@ class SyncManager {
             await this.syncUpdateExpense(item);
           } else if (item.type === 'DELETE') {
             await this.syncDeleteExpense(item);
+          } else if (item.type === 'RECORD_PAYMENT') {
+            await this.syncRecordPayment(item);
           }
 
           // Successfully processed, remove from queue
@@ -170,6 +173,8 @@ class SyncManager {
     } finally {
       this.isSyncing = false;
       await this.updatePendingCount();
+      // Recalculate local dashboard cache after sync completes
+      await localDbRecalculateDashboardCache().catch(() => {});
       this.notify();
     }
   }
@@ -197,6 +202,13 @@ class SyncManager {
       if (payload[field] !== undefined && payload[field] !== '') {
         formData.append(field, payload[field]);
       }
+    }
+
+    if (payload.isSplit !== undefined) {
+      formData.append('isSplit', payload.isSplit);
+    }
+    if (payload.participants) {
+      formData.append('participants', JSON.stringify(payload.participants));
     }
 
     // If receipt was captured as base64 dataUrl offline, convert to Blob
@@ -265,6 +277,12 @@ class SyncManager {
     ]) {
       if (payload[field] !== undefined) formData.append(field, payload[field]);
     }
+    if (payload.isSplit !== undefined) {
+      formData.append('isSplit', payload.isSplit);
+    }
+    if (payload.participants) {
+      formData.append('participants', typeof payload.participants === 'string' ? payload.participants : JSON.stringify(payload.participants));
+    }
     if (payload.removeReceipt) formData.append('removeReceipt', 'true');
 
     if (payload.receiptDataUrl && payload.receiptName) {
@@ -293,12 +311,19 @@ class SyncManager {
         method: 'DELETE',
       });
     } catch (err) {
-      // If already not found on server, that is fine
       if (!err.message?.includes('not found')) {
         throw err;
       }
     }
     await localDbDeleteExpense(id);
+  }
+
+  async syncRecordPayment(item) {
+    const { participantId, payload } = item;
+    await apiFetch(`/expenses/split/participants/${participantId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 }
 

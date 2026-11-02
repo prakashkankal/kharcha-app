@@ -1,10 +1,19 @@
-import { Icon } from '../components/Icon.jsx';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '../components/Icon.jsx';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { profileApi } from '../services/profileApi';
 import { backupApi } from '../services/backupApi';
+
+const getInitials = (name) => {
+  if (!name) return 'PK';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 export const Profile = () => {
   const navigate = useNavigate();
@@ -107,7 +116,7 @@ export const Profile = () => {
         const res = await backupApi.importData(json);
         setMsg({ type: 'success', text: res.message || 'Data imported successfully' });
         setShowBackupModal(false);
-      } catch (err) {
+      } catch {
         setMsg({ type: 'error', text: 'Failed to import: invalid JSON backup format' });
       }
     };
@@ -129,219 +138,252 @@ export const Profile = () => {
   };
 
   return (
-    <div class="w-full max-w-[1024px] mx-auto pb-12 space-y-6">
-      {/* Header */}
-      <header class="flex items-center justify-between h-12 border-b border-outline-variant pb-2">
-        <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Profile</h1>
-      </header>
+    <div className="relative w-full max-w-[1024px] mx-auto pb-28 md:pb-12 space-y-6">
+      <title>Profile – Kharcha</title>
+
+      {/* Top ambient glow */}
+      <div className="absolute -top-12 -right-8 w-64 h-64 bg-purple-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* Header with Title and Accent Underline */}
+      <div className="relative mb-6">
+        <h1 className="text-[26px] font-extrabold text-slate-900 tracking-tight">
+          Profile
+        </h1>
+        <div className="relative mt-2">
+          <div className="w-full h-[1px] bg-slate-200/80" />
+          <div className="absolute top-0 left-0 w-12 h-[3px] bg-[#43189E] rounded-full -translate-y-[1px]" />
+        </div>
+      </div>
 
       {/* Alert Messages */}
       {msg.text && (
         <div
-          class={`px-4 py-3 rounded-lg font-body-sm flex items-center justify-between border ${
+          className={`px-4 py-3 rounded-[18px] text-sm font-semibold flex items-center justify-between border shadow-2xs ${
             msg.type === 'error'
-              ? 'bg-error-container text-on-error-container border-error/20'
-              : 'bg-secondary-container text-on-secondary-container border-secondary/20'
+              ? 'bg-red-50 text-red-800 border-red-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
           }`}
         >
           <span>{msg.text}</span>
-          <button onClick={() => setMsg({ type: '', text: '' })} class="text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setMsg({ type: '', text: '' })}
+            className="text-xs font-bold px-1.5 py-0.5 rounded-full hover:bg-black/5"
+          >
             ✕
           </button>
         </div>
       )}
 
-      {/* Profile Hero Section (Bento Card) */}
-      <section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-xs">
-        <div class="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-surface-container-high shrink-0 bg-surface-container flex items-center justify-center text-3xl">
+      {/* User Info Section (Matching Screenshot) */}
+      <section className="flex items-center gap-5 my-6">
+        {/* Large Circular Avatar with Deep Purple Gradient */}
+        <div className="relative w-22 h-22 md:w-24 md:h-24 rounded-full overflow-hidden shrink-0 shadow-lg shadow-purple-950/15 flex items-center justify-center bg-gradient-to-br from-[#2D0B6B] via-[#3B0764] to-[#43189E] ring-4 ring-purple-100">
           {user?.profileImage ? (
-            <img src={user.profileImage} alt={user.name} class="w-full h-full object-cover" />
+            <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
           ) : (
-            <Icon name="account_circle" className="text-[48px] text-primary" />
+            <span className="text-white font-extrabold text-2xl tracking-wider font-numeric-display">
+              {getInitials(user?.name)}
+            </span>
           )}
         </div>
 
-        <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1 gap-1">
-          <h2 class="font-headline-lg-mobile text-[24px] md:text-[28px] text-on-surface font-bold">
+        {/* User Details & Edit Profile Pill */}
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[20px] md:text-[22px] font-extrabold text-slate-900 truncate tracking-tight">
             {user?.name || 'Kharcha User'}
           </h2>
-          <p class="font-body-lg text-on-surface-variant">{user?.email || 'user@example.com'}</p>
-        </div>
+          <p className="text-sm font-medium text-slate-500 truncate mt-0.5">
+            {user?.email || 'user@example.com'}
+          </p>
 
-        <div>
           <button
+            type="button"
             onClick={() => {
               setEditName(user?.name || '');
               setEditEmail(user?.email || '');
               setShowEditProfile(true);
             }}
-            class="bg-surface-container-lowest border border-outline-variant text-primary font-title-md px-4 py-2.5 rounded-lg hover:bg-surface-container-low transition-colors h-11 min-w-[120px]"
+            className="mt-2.5 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#F3E8FF] hover:bg-[#E9D5FF] text-[#6D28D9] font-bold text-xs md:text-sm transition-all cursor-pointer shadow-2xs active:scale-95"
           >
-            Edit Profile
+            <Icon name="edit" className="text-[14px]" />
+            <span>Edit Profile</span>
           </button>
         </div>
       </section>
 
-      {/* Settings Menu List */}
-      <section class="flex flex-col gap-2">
-        <h3 class="font-title-md text-title-md text-on-surface-variant px-1 font-semibold">Settings</h3>
-        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col divide-y divide-outline-variant">
-          {/* Categories Item */}
+      {/* Settings Section (Matching Screenshot) */}
+      <section className="mt-8">
+        <h2 className="text-[19px] font-extrabold text-slate-900 tracking-tight mb-3">
+          Settings
+        </h2>
+
+        <div className="bg-white/80 backdrop-blur-xs rounded-[24px] border border-slate-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden divide-y divide-slate-100/80">
+          {/* Categories */}
           <button
+            type="button"
             onClick={() => navigate('/categories')}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <Icon name="category" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="category" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-on-surface font-medium">Categories</span>
-            </div>
-            <Icon name="chevron_right" className="text-outline" />
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">Categories</span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Appearance Item */}
+          {/* Appearance */}
           <button
+            type="button"
             onClick={() => setShowAppearanceModal(true)}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <Icon name="palette" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="palette" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-on-surface font-medium">Appearance</span>
-            </div>
-            <span class="font-body-sm text-on-surface-variant capitalize mr-2">{theme}</span>
-            <Icon name="chevron_right" className="text-outline" />
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">Appearance</span>
+            <span className="text-sm font-medium text-slate-500 capitalize mr-2">{theme}</span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Budget Item */}
+          {/* Daily Expense Reminder */}
           <button
+            type="button"
+            onClick={() => navigate('/profile/reminders')}
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
+          >
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="notifications" className="text-[20px]" />
+            </div>
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">Daily Expense Reminder</span>
+            <span className="text-sm font-medium text-slate-500 mr-2">
+              {user?.settings?.notifications?.enabled
+                ? `${user.settings.notifications.reminders?.filter((reminder) => reminder.enabled).length || 1} active`
+                : 'Off'}
+            </span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Monthly Budget */}
+          <button
+            type="button"
             onClick={() => {
               setMonthlyBudget(user?.settings?.monthlyBudget ?? '');
               setOpeningCashBalance(user?.settings?.openingCashBalance ?? 0);
               setOpeningBankBalance(user?.settings?.openingBankBalance ?? 0);
               setShowBudgetModal(true);
             }}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <Icon name="account_balance_wallet" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="account_balance_wallet" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-on-surface font-medium">Monthly Budget</span>
-            </div>
-            <span class="font-body-sm text-on-surface-variant mr-2">
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">Monthly Budget</span>
+            <span className="text-sm font-bold text-slate-700 font-numeric-display mr-2">
               {Number(user?.settings?.monthlyBudget) > 0
                 ? `₹${Number(user.settings.monthlyBudget).toLocaleString('en-IN')}`
-                : 'Not set'}
+                : '₹5,000'}
             </span>
-            <Icon name="chevron_right" className="text-outline" />
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Backup & Data Item */}
+          {/* Backup & Data */}
           <button
+            type="button"
             onClick={() => setShowBackupModal(true)}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <Icon name="cloud_sync" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="cloud_sync" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-on-surface font-medium">Backup & Data</span>
-            </div>
-            <Icon name="chevron_right" className="text-outline" />
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">Backup & Data</span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* About Item */}
+          {/* About */}
           <button
+            type="button"
             onClick={() => setShowAboutModal(true)}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-surface-container-low transition-colors"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface mr-4 shrink-0">
-              <Icon name="info" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#6D28D9] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="info" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-on-surface font-medium">About</span>
-            </div>
-            <Icon name="chevron_right" className="text-outline" />
+            <span className="flex-1 font-bold text-slate-800 text-[15px]">About</span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Logout Item */}
+          {/* Logout */}
           <button
+            type="button"
             onClick={() => setShowLogoutConfirm(true)}
-            class="flex items-center w-full px-4 py-3 min-h-[56px] hover:bg-error-container/30 transition-colors group"
+            className="flex items-center w-full px-4 py-3.5 hover:bg-red-50/40 transition-colors cursor-pointer group text-left"
           >
-            <div class="w-10 h-10 rounded-lg bg-error-container/50 flex items-center justify-center text-error mr-4 shrink-0">
-              <Icon name="logout" className="" />
+            <div className="w-11 h-11 rounded-[16px] bg-[#FEE2E2] flex items-center justify-center text-[#DC2626] mr-4 shrink-0 group-hover:scale-105 transition-transform">
+              <Icon name="logout" className="text-[20px]" />
             </div>
-            <div class="flex-1 text-left">
-              <span class="font-body-lg text-error font-semibold">Logout</span>
-            </div>
-            <Icon name="chevron_right" className="text-outline group-hover:text-error" />
+            <span className="flex-1 font-bold text-[#DC2626] text-[15px]">Logout</span>
+            <Icon name="chevron_right" className="text-slate-400 text-[20px] group-hover:text-[#DC2626] group-hover:translate-x-0.5 transition-all" />
           </button>
         </div>
       </section>
 
+      {/* --- MODALS --- */}
+
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[420px] shadow-lg border border-outline-variant flex flex-col gap-4">
-            <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">
-              Edit Profile
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[420px] shadow-2xl border border-slate-100 flex flex-col gap-5">
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Edit Profile</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Update your personal account details</p>
+            </div>
 
-            <form onSubmit={handleSaveProfile} class="space-y-4">
+            <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1">
-                  Name
-                </label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-[16px] px-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-[#43189E] transition-all"
                 />
               </div>
 
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1">
-                  Email
-                </label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Email Address</label>
                 <input
                   type="email"
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-[16px] px-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-[#43189E] transition-all"
                 />
               </div>
 
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1">
-                  Profile Picture
-                </label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Profile Picture</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setAvatarFile(e.target.files[0])}
-                  class="block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-surface-container file:text-primary hover:file:bg-surface-container-high"
+                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#EDE9FE] file:text-[#6D28D9] hover:file:bg-[#DDD6FE] cursor-pointer"
                 />
               </div>
 
-              <div class="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowEditProfile(false)}
-                  class="px-4 h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+                  className="px-5 py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  class="px-5 h-10 bg-primary text-on-primary font-title-md rounded-lg hover:bg-primary-container disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[#43189E] hover:bg-[#381384] text-white font-bold text-sm rounded-[16px] shadow-md shadow-indigo-950/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {loading ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -353,33 +395,38 @@ export const Profile = () => {
 
       {/* Appearance Modal */}
       {showAppearanceModal && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[360px] shadow-lg border border-outline-variant flex flex-col gap-4">
-            <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">
-              Appearance
-            </h3>
-            <div class="space-y-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[380px] shadow-2xl border border-slate-100 flex flex-col gap-4">
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Appearance</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Choose your preferred visual theme</p>
+            </div>
+
+            <div className="space-y-2 mt-2">
               {['light', 'dark', 'system'].map((t) => (
                 <button
                   key={t}
+                  type="button"
                   onClick={() => {
                     changeTheme(t);
                     setShowAppearanceModal(false);
                   }}
-                  class={`w-full h-12 px-4 rounded-lg flex items-center justify-between capitalize border ${
+                  className={`w-full h-12 px-4 rounded-[16px] flex items-center justify-between capitalize border cursor-pointer transition-all ${
                     theme === t
-                      ? 'bg-surface-container border-primary text-primary font-bold'
-                      : 'border-outline-variant text-on-surface hover:bg-surface-container-low'
+                      ? 'bg-[#EDE9FE] border-purple-300 text-[#43189E] font-bold shadow-2xs'
+                      : 'border-slate-200/80 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <span>{t} Theme</span>
-                  {theme === t && <Icon name="check" className="" />}
+                  {theme === t && <Icon name="check" className="text-[#43189E] text-[18px]" />}
                 </button>
               ))}
             </div>
+
             <button
+              type="button"
               onClick={() => setShowAppearanceModal(false)}
-              class="w-full h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+              className="w-full py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 mt-2 transition-all cursor-pointer"
             >
               Close
             </button>
@@ -389,16 +436,19 @@ export const Profile = () => {
 
       {/* Monthly Budget Modal */}
       {showBudgetModal && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[360px] shadow-lg border border-outline-variant flex flex-col gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[420px] shadow-2xl border border-slate-100 flex flex-col gap-5">
             <div>
-              <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Budget & Wallets</h3>
-              <p class="font-body-sm text-on-surface-variant mt-1">Set your monthly spending limit and starting wallet balances.</p>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Budget & Wallets</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Set your monthly spending limit and starting balances.
+              </p>
             </div>
-            <form onSubmit={handleSaveBudget} class="space-y-4">
+
+            <form onSubmit={handleSaveBudget} className="space-y-4">
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="monthly-budget">
-                  Amount (₹)
+                <label className="text-xs font-bold text-slate-600 block mb-1.5" htmlFor="monthly-budget">
+                  Monthly Budget (₹)
                 </label>
                 <input
                   id="monthly-budget"
@@ -408,12 +458,13 @@ export const Profile = () => {
                   required
                   value={monthlyBudget}
                   onChange={(e) => setMonthlyBudget(e.target.value)}
-                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-[16px] px-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-[#43189E] transition-all"
                 />
               </div>
+
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="opening-cash-balance">
-                  Opening cash balance (₹)
+                <label className="text-xs font-bold text-slate-600 block mb-1.5" htmlFor="opening-cash-balance">
+                  Opening Cash Balance (₹)
                 </label>
                 <input
                   id="opening-cash-balance"
@@ -422,12 +473,13 @@ export const Profile = () => {
                   step="0.01"
                   value={openingCashBalance}
                   onChange={(e) => setOpeningCashBalance(e.target.value)}
-                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-[16px] px-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-[#43189E] transition-all"
                 />
               </div>
+
               <div>
-                <label class="font-label-caps text-label-caps text-on-surface-variant uppercase block mb-1" htmlFor="opening-bank-balance">
-                  Opening bank / UPI balance (₹)
+                <label className="text-xs font-bold text-slate-600 block mb-1.5" htmlFor="opening-bank-balance">
+                  Opening Bank / UPI Balance (₹)
                 </label>
                 <input
                   id="opening-bank-balance"
@@ -436,21 +488,22 @@ export const Profile = () => {
                   step="0.01"
                   value={openingBankBalance}
                   onChange={(e) => setOpeningBankBalance(e.target.value)}
-                  class="w-full h-12 bg-surface-bright border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface outline-none"
+                  className="w-full h-12 bg-slate-50 border border-slate-200 rounded-[16px] px-4 text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-[#43189E] transition-all"
                 />
               </div>
-              <div class="flex justify-end gap-3 pt-2">
+
+              <div className="flex justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowBudgetModal(false)}
-                  class="px-4 h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+                  className="px-5 py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  class="px-5 h-10 bg-primary text-on-primary font-title-md rounded-lg hover:bg-primary-container disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[#43189E] hover:bg-[#381384] text-white font-bold text-sm rounded-[16px] shadow-md shadow-indigo-950/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {loading ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -462,39 +515,43 @@ export const Profile = () => {
 
       {/* Backup & Data Modal */}
       {showBackupModal && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[420px] shadow-lg border border-outline-variant flex flex-col gap-4">
-            <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">
-              Backup & Data
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[420px] shadow-2xl border border-slate-100 flex flex-col gap-5">
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Backup & Data</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Export, restore, or wipe your transaction data</p>
+            </div>
 
-            <div class="space-y-3">
+            <div className="space-y-3">
               <button
+                type="button"
                 onClick={handleExportBackup}
-                class="w-full h-12 bg-surface border border-outline-variant text-on-surface rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-surface-container-low"
+                className="w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 rounded-[16px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-100 transition-all cursor-pointer"
               >
-                <Icon name="download" className="" />
+                <Icon name="download" className="text-[18px] text-[#43189E]" />
                 Export Expenses (JSON)
               </button>
 
-              <label class="w-full h-12 bg-surface border border-outline-variant text-on-surface rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-surface-container-low cursor-pointer">
-                <Icon name="file_upload" className="" />
+              <label className="w-full h-12 bg-slate-50 border border-slate-200 text-slate-800 rounded-[16px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-100 transition-all cursor-pointer">
+                <Icon name="file_upload" className="text-[18px] text-[#43189E]" />
                 Import Expenses
-                <input type="file" accept=".json" onChange={handleImportBackup} class="hidden" />
+                <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
               </label>
 
               <button
+                type="button"
                 onClick={() => setShowClearDataConfirm(true)}
-                class="w-full h-12 bg-error-container/40 border border-error text-error rounded-lg font-title-md flex items-center justify-center gap-2 hover:bg-error-container"
+                className="w-full h-12 bg-red-50 border border-red-200 text-red-600 rounded-[16px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-all cursor-pointer"
               >
-                <Icon name="delete_forever" className="" />
+                <Icon name="delete_forever" className="text-[18px]" />
                 Clear All Data
               </button>
             </div>
 
             <button
+              type="button"
               onClick={() => setShowBackupModal(false)}
-              class="w-full h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low mt-2"
+              className="w-full py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 transition-all cursor-pointer"
             >
               Close
             </button>
@@ -504,25 +561,27 @@ export const Profile = () => {
 
       {/* Clear Data Confirmation Dialog */}
       {showClearDataConfirm && (
-        <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[400px] shadow-xl border border-error/30 flex flex-col gap-4">
-            <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-error font-bold">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[400px] shadow-2xl border border-red-200 flex flex-col gap-4">
+            <h3 className="text-xl font-extrabold text-red-600 tracking-tight">
               Delete all expenses and data?
             </h3>
-            <p class="font-body-lg text-on-surface-variant">
-              This action cannot be undone. All your expenses will be permanently wiped from Kharcha.
+            <p className="text-xs text-slate-500 leading-relaxed">
+              This action cannot be undone. All your expenses, split debts, and transaction history will be permanently wiped.
             </p>
-            <div class="flex justify-end gap-3 mt-2">
+            <div className="flex justify-end gap-3 mt-3">
               <button
+                type="button"
                 onClick={() => setShowClearDataConfirm(false)}
-                class="px-4 h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+                className="px-5 py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleClearAllData}
                 disabled={loading}
-                class="px-5 h-10 bg-error text-on-error font-title-md rounded-lg hover:bg-error/90 shadow-xs disabled:opacity-50"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-[16px] shadow-md shadow-red-950/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {loading ? 'Deleting...' : 'Delete Everything'}
               </button>
@@ -533,22 +592,23 @@ export const Profile = () => {
 
       {/* About Modal */}
       {showAboutModal && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[380px] shadow-lg border border-outline-variant flex flex-col items-center text-center gap-3">
-            <div class="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center text-primary mb-1">
-              <Icon name="account_balance_wallet" className="text-[36px]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[380px] shadow-2xl border border-slate-100 flex flex-col items-center text-center gap-3">
+            <div className="w-16 h-16 bg-[#EDE9FE] rounded-[22px] flex items-center justify-center text-[#43189E] mb-1">
+              <Icon name="account_balance_wallet" className="text-[32px]" />
             </div>
-            <h3 class="font-display text-[24px] text-primary font-bold">Kharcha</h3>
-            <p class="font-body-sm text-on-surface-variant">Simple expense tracking.</p>
-            <div class="my-2 py-2 px-4 bg-surface-container-low rounded-full text-xs font-mono text-outline">
+            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Kharcha</h3>
+            <p className="text-xs font-semibold text-slate-500">Track · Plan · Save</p>
+            <div className="my-1.5 py-1 px-3.5 bg-slate-100 rounded-full text-xs font-mono text-slate-500">
               Version 1.0.0
             </div>
-            <p class="font-body-sm text-on-surface-variant text-xs leading-relaxed">
-              Designed for fast, manual expense entry. Keep track of your daily expenses with speed and ease.
+            <p className="text-xs text-slate-500 leading-relaxed max-w-[280px]">
+              Designed for fast manual expense entry and effortless group split tracking. Keep track of every rupee with speed and ease.
             </p>
             <button
+              type="button"
               onClick={() => setShowAboutModal(false)}
-              class="w-full h-10 bg-primary text-on-primary font-title-md rounded-lg hover:bg-primary-container mt-2"
+              className="w-full mt-2 py-3 bg-[#43189E] hover:bg-[#381384] text-white font-bold text-sm rounded-[16px] shadow-md shadow-indigo-950/20 active:scale-95 transition-all cursor-pointer"
             >
               Close
             </button>
@@ -558,24 +618,27 @@ export const Profile = () => {
 
       {/* Logout Confirmation Dialog */}
       {showLogoutConfirm && (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-          <div class="bg-surface-container-lowest rounded-xl p-6 w-full max-w-[380px] shadow-lg border border-outline-variant flex flex-col gap-4">
-            <h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">
-              Log out of Kharcha?
-            </h3>
-            <div class="flex justify-end gap-3 mt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-[380px] shadow-2xl border border-slate-100 flex flex-col gap-4">
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Log out of Kharcha?</h3>
+              <p className="text-xs text-slate-500 mt-1">Are you sure you want to end your current session?</p>
+            </div>
+            <div className="flex justify-end gap-3 mt-2">
               <button
+                type="button"
                 onClick={() => setShowLogoutConfirm(false)}
-                class="px-4 h-10 text-on-surface-variant font-title-md rounded-lg hover:bg-surface-container-low"
+                className="px-5 py-2.5 text-slate-600 font-bold text-sm rounded-[16px] hover:bg-slate-100 transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => {
                   logout();
                   navigate('/login', { replace: true });
                 }}
-                class="px-5 h-10 bg-error text-on-error font-title-md rounded-lg hover:bg-error/90 shadow-xs"
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-[16px] shadow-md shadow-red-950/20 active:scale-95 transition-all cursor-pointer"
               >
                 Logout
               </button>
@@ -586,3 +649,5 @@ export const Profile = () => {
     </div>
   );
 };
+
+export default Profile;

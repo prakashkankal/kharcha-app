@@ -9,6 +9,8 @@ import expenseRoutes from './routes/expenseRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import { startNotificationScheduler } from './utils/notificationScheduler.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -40,6 +42,9 @@ app.use('/expenses', expenseRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/profile', profileRoutes);
 
+app.use('/api/notifications', notificationRoutes);
+app.use('/notifications', notificationRoutes);
+
 app.use('/api/backup', backupRoutes);
 app.use('/backup', backupRoutes);
 
@@ -54,4 +59,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Kharcha server running on http://localhost:${PORT}`);
+  startNotificationScheduler();
 });

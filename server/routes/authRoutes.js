@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   googleAuth,
+  refreshSession,
   getMe,
   verifyOtp,
   resendOtp,
@@ -16,6 +17,7 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleAuth);
+router.post('/refresh', refreshSession);
 router.post('/verify-otp', verifyOtp);
 router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);

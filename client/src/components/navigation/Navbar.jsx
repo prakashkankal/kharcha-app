@@ -13,15 +13,14 @@ export const Navbar = () => {
     path.startsWith('/profile') || path.startsWith('/categories') || path.startsWith('/settings');
 
   return (
-    <header class="w-full bg-surface border-b border-outline-variant sticky top-0 z-40 shadow-xs">
-      <div class="w-full max-w-[1024px] mx-auto flex items-center justify-between px-container-margin h-[76px] md:h-14">
+    <header class="w-full bg-[#FAF8FF]/80 backdrop-blur-md sticky top-0 z-40">
+      <div class="w-full max-w-[1024px] mx-auto flex items-center justify-between px-container-margin h-[70px] md:h-16">
         <div class="flex items-center gap-3 min-w-0">
-          <Link to="/add-expense" class="flex items-center gap-2">
-            <img src="/logo.png" alt="Kharcha Logo" class="w-12 h-12 md:w-8 md:h-8 rounded-xl md:rounded-lg object-cover shadow-xs" />
-            <span class="flex flex-col leading-tight">
-              <h1 class="font-title-md text-[24px] md:text-title-md text-primary font-bold tracking-tight">Kharcha</h1>
-              <span class="text-sm md:text-xs text-on-surface-variant">Track · Plan · Save</span>
-            </span>
+          <Link to="/dashboard" class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-[#0F172A] text-sky-400 flex items-center justify-center shadow-xs">
+              <Icon name="account_balance_wallet" className="text-[22px]" />
+            </div>
+            <h1 class="text-[24px] text-[#0F172A] font-extrabold tracking-tight">Kharcha</h1>
           </Link>
         </div>
         <div class="hidden md:block"><SyncStatusBadge /></div>
@@ -31,9 +30,9 @@ export const Navbar = () => {
           <Link
             to="/add-expense"
             class={`font-title-md text-title-md flex items-center gap-2 pb-1 transition-colors duration-200 ${
-              path === '/add-expense' || path === '/'
-                ? 'text-primary font-bold border-b-2 border-primary'
-                : 'text-on-surface-variant hover:text-primary'
+              path === '/add-expense'
+                ? 'text-[#43189E] font-bold border-b-2 border-[#43189E]'
+                : 'text-slate-500 hover:text-[#43189E]'
             }`}
           >
             <Icon name="add_circle" />
@@ -43,9 +42,9 @@ export const Navbar = () => {
           <Link
             to="/dashboard"
             class={`font-title-md text-title-md flex items-center gap-2 pb-1 transition-colors duration-200 ${
-              path === '/dashboard'
-                ? 'text-primary font-bold border-b-2 border-primary'
-                : 'text-on-surface-variant hover:text-primary'
+              path === '/dashboard' || path === '/'
+                ? 'text-[#43189E] font-bold border-b-2 border-[#43189E]'
+                : 'text-slate-500 hover:text-[#43189E]'
             }`}
           >
             <Icon name="dashboard" />
@@ -56,8 +55,8 @@ export const Navbar = () => {
             to="/analytics"
             class={`font-title-md text-title-md flex items-center gap-2 pb-1 transition-colors duration-200 ${
               path === '/analytics'
-                ? 'text-primary font-bold border-b-2 border-primary'
-                : 'text-on-surface-variant hover:text-primary'
+                ? 'text-[#43189E] font-bold border-b-2 border-[#43189E]'
+                : 'text-slate-500 hover:text-[#43189E]'
             }`}
           >
             <Icon name="bar_chart" />
@@ -67,9 +66,9 @@ export const Navbar = () => {
           <Link
             to="/profile"
             class={`font-title-md text-title-md flex items-center gap-2 pb-1 transition-colors duration-200 ${
-              path.startsWith('/profile') || path.startsWith('/categories') || path.startsWith('/settings')
-                ? 'text-primary font-bold border-b-2 border-primary'
-                : 'text-on-surface-variant hover:text-primary'
+              isProfileActive
+                ? 'text-[#43189E] font-bold border-b-2 border-[#43189E]'
+                : 'text-slate-500 hover:text-[#43189E]'
             }`}
           >
             <Icon name="person" />
@@ -81,18 +80,14 @@ export const Navbar = () => {
         <Link
           to="/profile"
           title="Profile"
-          class={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-200 shrink-0 ${
-            isProfileActive
-              ? 'border-primary bg-primary/10 text-primary shadow-md'
-              : 'border-outline-variant bg-surface-container text-on-surface-variant hover:border-primary hover:text-primary hover:shadow-sm'
-          }`}
+          class="flex items-center justify-center w-10 h-10 rounded-full bg-[#EDE9FE] text-[#6D28D9] font-bold text-base shadow-xs border border-purple-200/80 hover:opacity-90 transition-opacity shrink-0"
         >
           {user?.name ? (
-            <span class="font-bold text-sm select-none leading-none">
+            <span class="select-none leading-none">
               {user.name.charAt(0).toUpperCase()}
             </span>
           ) : (
-            <Icon name="person" className="text-[20px]" />
+            <span class="select-none leading-none">P</span>
           )}
         </Link>
       </div>

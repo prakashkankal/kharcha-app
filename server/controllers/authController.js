@@ -10,6 +10,19 @@ const generateToken = (id) => {
   });
 };
 
+const generateRefreshToken = (id) => {
+  return jwt.sign(
+    { id, tokenType: 'refresh' },
+    process.env.JWT_SECRET || 'kharcha_super_secret_jwt_key_2026_production_grade',
+    { expiresIn: '365d' }
+  );
+};
+
+const createSessionTokens = (id) => ({
+  token: generateToken(id),
+  refreshToken: generateRefreshToken(id),
+});
+
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
@@ -129,10 +142,11 @@ export const verifyOtp = async (req, res, next) => {
     }
 
     if (user.isVerified) {
-      const token = generateToken(user._id);
+      const { token, refreshToken } = createSessionTokens(user._id);
       return res.json({
         message: 'Account is already verified',
         token,
+        refreshToken,
         user: {
           id: user._id,
           name: user.name,
@@ -157,11 +171,12 @@ export const verifyOtp = async (req, res, next) => {
     await user.save();
 
     await seedDefaultCategories(user._id);
-    const token = generateToken(user._id);
+    const { token, refreshToken } = createSessionTokens(user._id);
 
     res.json({
       message: 'Account verified successfully!',
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -250,10 +265,11 @@ export const loginUser = async (req, res, next) => {
 
     await seedDefaultCategories(user._id);
 
-    const token = generateToken(user._id);
+    const { token, refreshToken } = createSessionTokens(user._id);
 
     res.json({
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -269,7 +285,15 @@ export const loginUser = async (req, res, next) => {
 
 export const googleAuth = async (req, res, next) => {
   try {
-    const { credential, accessToken, refreshToken, googleId: inputGoogleId, email: inputEmail, name: inputName, profileImage: inputImage } = req.body;
+    const {
+      credential,
+      accessToken,
+      refreshToken: googleRefreshToken,
+      googleId: inputGoogleId,
+      email: inputEmail,
+      name: inputName,
+      profileImage: inputImage,
+    } = req.body;
 
     let googleId = inputGoogleId;
     let email = inputEmail;
@@ -318,7 +342,7 @@ export const googleAuth = async (req, res, next) => {
         email: email.toLowerCase(),
         googleId: googleId || `google_${Date.now()}`,
         googleAccessToken: accessToken || null,
-        googleRefreshToken: refreshToken || null,
+        googleRefreshToken: googleRefreshToken || null,
         profileImage: profileImage || null,
         isVerified: true,
         settings: { onboardingCompleted: false },
@@ -330,17 +354,18 @@ export const googleAuth = async (req, res, next) => {
         user.googleId = googleId;
       }
       if (accessToken) user.googleAccessToken = accessToken;
-      if (refreshToken) user.googleRefreshToken = refreshToken;
+      if (googleRefreshToken) user.googleRefreshToken = googleRefreshToken;
       if (profileImage && !user.profileImage) {
         user.profileImage = profileImage;
       }
       await user.save();
     }
 
-    const token = generateToken(user._id);
+    const { token, refreshToken } = createSessionTokens(user._id);
 
     res.json({
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -351,6 +376,38 @@ export const googleAuth = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const refreshSession = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body || {};
+    if (typeof refreshToken !== 'string' || !refreshToken) {
+      return res.status(401).json({ message: 'A valid refresh token is required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_SECRET || 'kharcha_super_secret_jwt_key_2026_production_grade'
+      );
+    } catch {
+      return res.status(401).json({ message: 'Your session has expired. Please log in again.' });
+    }
+
+    if (decoded.tokenType !== 'refresh' || !decoded.id) {
+      return res.status(401).json({ message: 'A valid refresh token is required' });
+    }
+
+    const userExists = await User.exists({ _id: decoded.id });
+    if (!userExists) {
+      return res.status(401).json({ message: 'Your account is no longer available' });
+    }
+
+    return res.json(createSessionTokens(decoded.id));
+  } catch (error) {
+    return next(error);
   }
 };
 

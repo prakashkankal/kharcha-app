@@ -6,40 +6,55 @@ export const BottomNav = () => {
   const location = useLocation();
   const path = location.pathname;
 
+  const isHome = path === '/dashboard' || path === '/';
+  const isAddExpense = path === '/add-expense';
+  const isAnalytics = path === '/analytics';
+
   return (
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface/95 backdrop-blur border-t border-outline-variant pb-safe grid grid-cols-2 items-center h-[76px] px-5 z-50 shadow-[0_-8px_24px_rgba(19,27,46,0.08)]">
-      <Link
-        to="/dashboard"
-        class={`relative flex flex-col items-center justify-center h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
-          path === '/dashboard' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
-        }`}
-      >
-        {path === '/dashboard' && <span class="absolute top-0 w-16 h-1 rounded-full bg-primary" />}
-        <Icon name="dashboard" className="text-[24px] mb-0.5" />
-        <span class="font-label-caps text-[11px]">Dashboard</span>
-      </Link>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-100/80 pb-safe grid grid-cols-3 items-center h-[76px] px-6 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+      {/* Home Tab */}
+      <div class="flex justify-center">
+        <Link
+          to="/dashboard"
+          class={`flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl transition-all duration-150 ${
+            isHome
+              ? 'bg-[#EDE9FE] text-[#6D28D9] font-bold'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Icon name="home" className="text-[20px]" />
+          <span class="text-[11px] mt-0.5 font-semibold">Home</span>
+        </Link>
+      </div>
 
-      <Link
-        to="/add-expense"
-        aria-label="Add expense"
-        class="absolute left-1/2 -translate-x-1/2 -top-5 flex flex-col items-center gap-1 text-on-surface-variant active:scale-95 transition-transform"
-      >
-        <span class="w-[68px] h-[68px] rounded-full bg-primary text-on-primary border-4 border-background shadow-lg flex items-center justify-center">
-          <Icon name="add" className="text-[32px]" />
+      {/* Floating Center Add Expense Button */}
+      <div class="flex flex-col items-center relative -top-3.5">
+        <Link
+          to="/add-expense"
+          aria-label="Add expense"
+          class="w-14 h-14 rounded-full bg-[#43189E] hover:bg-[#381386] text-white shadow-lg shadow-purple-600/35 flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <Icon name="add" className="text-[28px]" />
+        </Link>
+        <span class={`text-[11px] mt-1 transition-colors ${isAddExpense ? 'text-[#43189E] font-bold' : 'text-slate-600 font-medium'}`}>
+          Add Expense
         </span>
-        <span class="font-label-caps text-[11px]">Add Expense</span>
-      </Link>
+      </div>
 
-      <Link
-        to="/analytics"
-        class={`relative flex flex-col items-center justify-center h-full py-1 rounded-lg transition-all duration-150 active:scale-95 ${
-          path === '/analytics' ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary'
-        }`}
-      >
-        {path === '/analytics' && <span class="absolute top-0 w-16 h-1 rounded-full bg-primary" />}
-        <Icon name="bar_chart" className="text-[24px] mb-0.5" />
-        <span class="font-label-caps text-[11px]">Analytics</span>
-      </Link>
+      {/* Analytics Tab */}
+      <div class="flex justify-center">
+        <Link
+          to="/analytics"
+          class={`flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl transition-all duration-150 ${
+            isAnalytics
+              ? 'bg-[#EDE9FE] text-[#6D28D9] font-bold'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Icon name="bar_chart" className="text-[20px]" />
+          <span class="text-[11px] mt-0.5 font-semibold">Analytics</span>
+        </Link>
+      </div>
     </nav>
   );
 };

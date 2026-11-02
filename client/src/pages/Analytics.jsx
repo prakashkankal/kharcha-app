@@ -1,4 +1,3 @@
-import { Icon } from '../components/Icon.jsx';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart,
@@ -10,20 +9,28 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
   LineChart,
   Line,
   CartesianGrid,
 } from 'recharts';
+import { Icon } from '../components/Icon.jsx';
 import { expenseApi } from '../services/expenseApi';
 import { useCategory } from '../context/CategoryContext';
 import { localDbGetExpenses } from '../services/localDb';
 import { getSpendingTotal, getTransactionType, isConfirmedTransaction } from '../services/transactionUtils';
 
-// --- Palette for pie chart slices ---
+// --- Palette for pie chart slices matching new purple / slate theme ---
 const PALETTE = [
-  '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6',
-  '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#84cc16',
+  '#43189E', // Deep Indigo/Purple
+  '#7C3AED', // Vivid Violet
+  '#2563EB', // Blue
+  '#0D9488', // Teal
+  '#EA580C', // Orange
+  '#E11D48', // Rose
+  '#F59E0B', // Amber
+  '#10B981', // Emerald
+  '#8B5CF6', // Purple
+  '#64748B', // Slate
 ];
 
 // --- Helpers ---
@@ -64,13 +71,13 @@ const PERIOD_OPTIONS = [
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Custom tooltip
+// Modern dark floating tooltips
 const CustomBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div class="bg-surface-container border border-outline-variant rounded-xl px-4 py-3 shadow-lg text-sm">
-        <p class="text-on-surface-variant mb-1">{label}</p>
-        <p class="text-primary font-bold text-base">{formatINR(payload[0].value)}</p>
+      <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl px-3.5 py-2.5 shadow-xl border border-slate-800 text-xs">
+        <p className="text-slate-400 font-medium mb-0.5">{label}</p>
+        <p className="font-extrabold text-white text-sm font-numeric-display">{formatINR(payload[0].value)}</p>
       </div>
     );
   }
@@ -80,10 +87,10 @@ const CustomBarTooltip = ({ active, payload, label }) => {
 const CustomPieTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     return (
-      <div class="bg-surface-container border border-outline-variant rounded-xl px-4 py-3 shadow-lg text-sm">
-        <p class="text-on-surface font-medium">{payload[0].name}</p>
-        <p class="text-primary font-bold">{formatINR(payload[0].value)}</p>
-        <p class="text-on-surface-variant">{payload[0].payload.percent}%</p>
+      <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl px-3.5 py-2.5 shadow-xl border border-slate-800 text-xs">
+        <p className="font-semibold text-white">{payload[0].name}</p>
+        <p className="font-extrabold text-purple-300 text-sm font-numeric-display mt-0.5">{formatINR(payload[0].value)}</p>
+        <p className="text-slate-400 text-[11px] mt-0.5">{payload[0].payload.percent}% of total</p>
       </div>
     );
   }
@@ -102,12 +109,10 @@ export const Analytics = () => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        // Try server for last 12 months worth of data (no filter = all)
         const data = await expenseApi.getExpenses({});
         if (Array.isArray(data) && data.length > 0) {
           setAllExpenses(data);
         } else {
-          // Fallback to local
           const local = await localDbGetExpenses();
           setAllExpenses(local || []);
         }
@@ -144,7 +149,6 @@ export const Analytics = () => {
       const label = start.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
       return { start, end, rangeLabel: label };
     }
-    // year
     const { start, end } = getYearRange(offset);
     return { start, end, rangeLabel: `${start.getFullYear()}` };
   }, [period, offset]);
@@ -200,7 +204,10 @@ export const Analytics = () => {
         const total = filteredExpenses
           .filter((e) => {
             const expenseDate = new Date(e.date || e.createdAt);
-            return expenseDate.getDate() >= Math.max(1, weekStartDay) && expenseDate.getDate() <= Math.min(daysInMonth, weekEndDay);
+            return (
+              expenseDate.getDate() >= Math.max(1, weekStartDay) &&
+              expenseDate.getDate() <= Math.min(daysInMonth, weekEndDay)
+            );
           })
           .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
         return { label: `Week ${weekIndex + 1}`, total };
@@ -273,20 +280,26 @@ export const Analytics = () => {
   };
 
   return (
-    <div class="w-full max-w-[1024px] mx-auto min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-8">
+    <div className="relative w-full max-w-[1024px] mx-auto min-h-[calc(100vh-120px)] flex flex-col gap-6 pb-28 md:pb-12">
       <title>Analytics – Kharcha</title>
 
-      {/* Period Toggle */}
-      <div class="flex gap-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-1.5">
+      {/* Ambient background glow in top-right */}
+      <div className="absolute -top-12 -right-8 w-64 h-64 bg-purple-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* 1. Period Switcher Bar */}
+      <div className="flex bg-white/90 backdrop-blur-md border border-slate-100 p-1.5 rounded-full shadow-2xs">
         {PERIOD_OPTIONS.map((opt) => (
           <button
             key={opt.key}
             type="button"
-            onClick={() => { setPeriod(opt.key); setOffset(0); }}
-            class={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            onClick={() => {
+              setPeriod(opt.key);
+              setOffset(0);
+            }}
+            className={`flex-1 py-2 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 cursor-pointer ${
               period === opt.key
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container'
+                ? 'bg-[#43189E] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             {opt.label}
@@ -294,193 +307,293 @@ export const Analytics = () => {
         ))}
       </div>
 
-      {/* Navigator */}
-      <div class="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setOffset((o) => o - 1)}
-          class="p-2 rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"
-          aria-label="Previous period"
-        >
-          <Icon name="chevron_left" className="" />
-        </button>
-        <p class="font-semibold text-on-surface text-base">{rangeLabel}</p>
-        <button
-          type="button"
-          onClick={() => setOffset((o) => o + 1)}
-          disabled={!canGoNext}
-          class={`p-2 rounded-full transition-colors ${canGoNext ? 'hover:bg-surface-container text-on-surface-variant' : 'text-outline opacity-40 cursor-not-allowed'}`}
-          aria-label="Next period"
-        >
-          <Icon name="chevron_right" className="" />
-        </button>
-      </div>
-      <div class="flex justify-end -mt-4">
+      {/* 2. Navigator & Export CSV Bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setOffset((o) => o - 1)}
+            className="w-9 h-9 rounded-full bg-white border border-slate-100 shadow-2xs flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+            aria-label="Previous period"
+          >
+            <Icon name="chevron_left" className="text-[18px]" />
+          </button>
+          <h2 className="text-base md:text-lg font-bold text-slate-900 tracking-tight">
+            {rangeLabel}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setOffset((o) => o + 1)}
+            disabled={!canGoNext}
+            className={`w-9 h-9 rounded-full bg-white border border-slate-100 shadow-2xs flex items-center justify-center transition-all ${
+              canGoNext
+                ? 'text-slate-700 hover:bg-slate-50 active:scale-95 cursor-pointer'
+                : 'text-slate-300 opacity-40 cursor-not-allowed'
+            }`}
+            aria-label="Next period"
+          >
+            <Icon name="chevron_right" className="text-[18px]" />
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={handleExportCsv}
           disabled={filteredTransactions.length === 0}
-          class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-outline-variant text-primary text-sm font-semibold hover:bg-surface-container-low disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-purple-200 text-[#43189E] hover:bg-purple-50 text-xs font-semibold shadow-2xs disabled:opacity-40 transition-all cursor-pointer"
         >
-          <Icon name="download" className="text-[18px]" />
-          Export CSV
+          <Icon name="download" className="text-[16px]" />
+          <span>Export CSV</span>
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div class="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Total', value: formatINR(totalSpend), icon: 'account_balance_wallet', color: 'text-primary' },
-          { label: 'Daily Avg', value: formatINR(Math.round(avgPerDay)), icon: 'trending_up', color: 'text-tertiary' },
-          { label: 'Highest', value: formatINR(highestExpense), icon: 'arrow_upward', color: 'text-error' },
-        ].map((card) => (
-          <div
-            key={card.label}
-            class="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 flex flex-col gap-1.5 shadow-xs"
-          >
-            <div class={`flex items-center gap-1.5 ${card.color}`}>
-              <Icon name={card.icon} className="text-[18px]" />
-              <span class="text-xs font-medium">{card.label}</span>
-            </div>
-            <p class="font-bold text-on-surface text-[15px] md:text-[18px] leading-tight">{card.value}</p>
+      {/* 3. Hero Card: Total Spending (Deep Purple Gradient) */}
+      <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2D0B6B] via-[#3B0764] to-[#1E1050] text-white p-6 shadow-xl shadow-purple-950/20">
+        <div className="absolute -top-12 -right-12 w-44 h-44 bg-purple-400/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-white/80 font-medium text-xs tracking-wider uppercase">
+            Total Spending
+          </span>
+          <span className="bg-white/15 backdrop-blur-xs text-white/90 text-xs px-3 py-1 rounded-full font-medium capitalize">
+            {period} View
+          </span>
+        </div>
+
+        <div className="flex items-end justify-between mt-2">
+          <div>
+            <h3 className="text-[34px] md:text-[38px] font-extrabold tracking-tight font-numeric-display leading-none">
+              {formatINR(totalSpend)}
+            </h3>
+            <p className="text-white/70 text-xs mt-2.5">
+              {filteredExpenses.length} {filteredExpenses.length === 1 ? 'expense' : 'expenses'} in this period
+            </p>
           </div>
-        ))}
+
+          {/* Decorative mini vertical bars */}
+          <div className="flex items-end gap-1.5 pr-1 opacity-80 pointer-events-none">
+            <div className="w-3 h-6 bg-white/35 rounded-full" />
+            <div className="w-3 h-10 bg-white/60 rounded-full" />
+            <div className="w-3 h-14 bg-white/90 rounded-full" />
+          </div>
+        </div>
       </div>
 
-      {/* Swipeable chart cards */}
-      <div class="flex flex-1 items-stretch overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 -mx-container-margin px-container-margin md:mx-0 md:px-0">
-      {/* Bar Chart */}
-      <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
-        <h2 class="font-semibold text-on-surface mb-2 text-[15px]">
-          {period === 'week' ? 'Daily Spending This Week' : period === 'month' ? 'Weekly Spending This Month' : 'Monthly Spending This Year'}
-        </h2>
-        {loading ? (
-          <div class="flex items-center justify-center h-[200px]">
-            <div class="w-7 h-7 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      {/* 4. Sub-cards Row: Daily Average & Highest Expense */}
+      <div className="grid grid-cols-2 gap-3.5 md:gap-4">
+        {/* Daily Average Card */}
+        <div className="bg-[#F0F5FF] border border-[#E0EAFF] rounded-[24px] p-4 flex items-center gap-3.5 shadow-2xs">
+          <div className="w-12 h-12 rounded-[18px] bg-[#DBEAFE] flex items-center justify-center text-[#2563EB] shrink-0">
+            <Icon name="trending_up" className="text-[22px]" />
           </div>
-        ) : filteredExpenses.length === 0 ? (
-          <div class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant gap-2">
-            <Icon name="bar_chart" className="text-[48px] text-outline" />
-            <p class="text-sm">No expenses in this period</p>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-slate-500 truncate">Daily Average</p>
+            <p className="text-[19px] md:text-[21px] font-bold text-slate-900 truncate font-numeric-display mt-0.5">
+              {formatINR(Math.round(avgPerDay))}
+            </p>
           </div>
-        ) : (
-          <div class="flex-1 min-h-[220px] -mx-3 -mb-3 md:-mx-4 md:-mb-4">
-          <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} margin={{ top: 0, right: 2, left: -16, bottom: 8 }} barCategoryGap="30%">
+        </div>
+
+        {/* Highest Expense Card */}
+        <div className="bg-[#FFF8F0] border border-[#FFE8D6] rounded-[24px] p-4 flex items-center gap-3.5 shadow-2xs">
+          <div className="w-12 h-12 rounded-[18px] bg-[#FFEDD5] flex items-center justify-center text-[#EA580C] shrink-0">
+            <Icon name="arrow_upward" className="text-[22px]" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-slate-500 truncate">Highest Expense</p>
+            <p className="text-[19px] md:text-[21px] font-bold text-slate-900 truncate font-numeric-display mt-0.5">
+              {formatINR(highestExpense)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Charts Container */}
+      <div className="space-y-6">
+        {/* Bar Chart Card */}
+        <div className="bg-white border border-slate-100 rounded-[26px] p-5 md:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col">
+          <div className="mb-4">
+            <h3 className="font-bold text-slate-900 text-[16px] tracking-tight">
+              {period === 'week'
+                ? 'Daily Spending'
+                : period === 'month'
+                ? 'Weekly Spending'
+                : 'Monthly Spending'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {period === 'week'
+                ? 'Breakdown across each day of the week'
+                : period === 'month'
+                ? 'Breakdown across weeks this month'
+                : 'Breakdown across all 12 months'}
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center h-[220px]">
+              <div className="w-8 h-8 border-3 border-[#43189E] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[200px] text-slate-400 gap-2">
+              <Icon name="bar_chart" className="text-[44px] text-slate-300" />
+              <p className="text-sm font-medium">No expenses in this period</p>
+            </div>
+          ) : (
+            <div className="w-full h-[240px] -ml-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 4 }} barCategoryGap="28%">
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#43189E" />
+                      <stop offset="100%" stopColor="#7C3AED" />
+                    </linearGradient>
+                  </defs>
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
+                    tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     interval={0}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
+                    tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     domain={period === 'week' ? [0, weeklyYAxisMax] : undefined}
                     ticks={period === 'week' ? weeklyYAxisTicks : undefined}
-                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                    tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
                   />
-                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'var(--color-surface-container)', radius: 8 }} />
-                  <Bar dataKey="total" fill="var(--color-primary)" radius={[5, 5, 0, 0]} maxBarSize={40} />
+                  <Tooltip
+                    content={<CustomBarTooltip />}
+                    cursor={{ fill: 'rgba(67, 24, 158, 0.05)', radius: 8 }}
+                  />
+                  <Bar
+                    dataKey="total"
+                    fill="url(#barGradient)"
+                    radius={[8, 8, 2, 2]}
+                    maxBarSize={38}
+                  />
                 </BarChart>
-          </ResponsiveContainer>
-          </div>
-        )}
-      </div>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
 
-      {/* Pie Chart — Category Breakdown */}
-      {pieData.length > 0 && (
-        <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
-          <h2 class="font-semibold text-on-surface mb-2 text-[15px]">Spending by Category</h2>
-          <div class="flex-1 min-h-[220px] flex flex-col md:flex-row items-center gap-4">
-            <div class="w-full h-full -mx-3 -mb-3 md:-mx-4 md:-mb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PALETTE[index % PALETTE.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomPieTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+        {/* Category Breakdown (Donut + Legend) */}
+        {pieData.length > 0 && (
+          <div className="bg-white border border-slate-100 rounded-[26px] p-5 md:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col gap-4">
+            <div>
+              <h3 className="font-bold text-slate-900 text-[16px] tracking-tight">Spending by Category</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Where your money went during this period</p>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Donut Chart */}
+              <div className="w-full md:w-1/2 h-[220px] flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={62}
+                      outerRadius={92}
+                      paddingAngle={3}
+                      dataKey="value"
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PALETTE[index % PALETTE.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Category Breakdown List */}
+              <div className="w-full md:w-1/2 space-y-2.5">
+                {pieData.map((item, i) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between p-2.5 rounded-[16px] bg-slate-50/70 border border-slate-100/80 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs"
+                        style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
+                      />
+                      <span className="text-sm font-semibold text-slate-800 truncate">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white text-slate-600 border border-slate-200/60 shadow-2xs">
+                        {item.percent}%
+                      </span>
+                      <span className="font-bold text-sm text-slate-900 font-numeric-display">
+                        {formatINR(item.value)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          {/* Category Legend List */}
-          <ul class="mt-2 space-y-2">
-            {pieData.map((item, i) => (
-              <li key={item.name} class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span
-                    class="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: PALETTE[i % PALETTE.length] }}
-                  />
-                  <span class="text-sm text-on-surface truncate">{item.name}</span>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class="text-xs text-on-surface-variant">{item.percent}%</span>
-                  <span class="font-semibold text-sm text-on-surface">{formatINR(item.value)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        )}
 
-      {/* Line Trend (only year view — cumulative monthly) */}
-      {period === 'year' && filteredExpenses.length > 0 && (
-        <div class="w-full min-h-full shrink-0 snap-start bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-xs flex flex-col">
-          <h2 class="font-semibold text-on-surface mb-2 text-[15px]">Spending Trend</h2>
-          <div class="flex-1 min-h-[200px] -mx-3 -mb-3 md:-mx-4 md:-mb-4">
-          <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={barData} margin={{ top: 0, right: 2, left: -16, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(156,163,175,0.15)" />
+        {/* Year Spending Trend (Only in Year View) */}
+        {period === 'year' && filteredExpenses.length > 0 && (
+          <div className="bg-white border border-slate-100 rounded-[26px] p-5 md:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col">
+            <div className="mb-4">
+              <h3 className="font-bold text-slate-900 text-[16px] tracking-tight">Annual Spending Trend</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Month-by-month trajectory throughout the year</p>
+            </div>
+            <div className="w-full h-[220px] -ml-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
+                    tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--color-on-surface-variant)' }}
+                    tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                    tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
                   />
                   <Tooltip content={<CustomBarTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="var(--color-primary)"
-                    strokeWidth={2.5}
-                    dot={{ fill: 'var(--color-primary)', r: 4, strokeWidth: 0 }}
-                    activeDot={{ r: 6 }}
+                    stroke="#43189E"
+                    strokeWidth={3}
+                    dot={{ fill: '#43189E', r: 4, stroke: '#FFFFFF', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#43189E', stroke: '#FFFFFF', strokeWidth: 2 }}
                   />
                 </LineChart>
-          </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
-      )}
-      </div>
+        )}
 
-      {/* No data at all */}
-      {!loading && filteredExpenses.length === 0 && (
-        <div class="flex flex-col items-center justify-center text-center py-12 text-on-surface-variant gap-3">
-          <Icon name="insights" className="text-[52px] text-outline" />
-          <p class="font-semibold text-on-surface">No data yet</p>
-          <p class="text-sm">Add some expenses to see your analytics here.</p>
-        </div>
-      )}
+        {/* Empty State when no expenses at all */}
+        {!loading && filteredExpenses.length === 0 && (
+          <div className="bg-white border border-slate-100 rounded-[26px] p-8 flex flex-col items-center justify-center text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] gap-3">
+            <div className="w-16 h-16 rounded-[22px] bg-[#EDE9FE] text-[#6D28D9] flex items-center justify-center">
+              <Icon name="insights" className="text-[32px]" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-base">No expense data found</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-[260px]">
+                Add some expenses in this period to view your analytics and charts.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

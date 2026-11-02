@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/authApi';
 import { getAuthToken } from '../services/api';
 import { syncManager } from '../services/syncManager';
+import { localDbSaveUserInfo, localDbGetUserInfo } from '../services/localDb';
 
 const AuthContext = createContext();
 
@@ -22,7 +23,6 @@ export const AuthProvider = ({ children }) => {
     return null;
   });
 
-  // If we already have a cached user and token, loading is false immediately
   const [loading, setLoading] = useState(() => {
     const token = getAuthToken();
     const cached = localStorage.getItem(LOCAL_USER_KEY);
@@ -31,11 +31,7 @@ export const AuthProvider = ({ children }) => {
 
   const persistUser = (userData) => {
     setUser(userData);
-    if (userData) {
-      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(userData));
-    } else {
-      localStorage.removeItem(LOCAL_USER_KEY);
-    }
+    localDbSaveUserInfo(userData).catch(() => {});
   };
 
   const fetchCurrentUser = async () => {
@@ -47,12 +43,18 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
+      // 4000ms timeout so silent refresh doesn't hang when server is asleep
       const data = await authApi.getMe();
       persistUser(data.user);
     } catch (error) {
       console.warn('Silent user refresh failed (server may be starting up):', error.message);
       // ONLY log out if the server explicitly tells us the token is invalid (401/403)
-      if (error.message && (error.message.includes('401') || error.message.includes('token') || error.message.includes('Unauthorized'))) {
+      if (
+        error.message &&
+        (error.message.includes('401') ||
+          error.message.includes('token') ||
+          error.message.includes('Unauthorized'))
+      ) {
         authApi.logout();
         persistUser(null);
       }
@@ -63,6 +65,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // If not hydrated from localStorage, try reading from IndexedDB
+    if (!user) {
+      localDbGetUserInfo().then((cached) => {
+        if (cached) {
+          setUser(cached);
+          setLoading(false);
+        }
+      });
+    }
+
     // Start background sync manager
     syncManager.init();
     fetchCurrentUser();
@@ -112,7 +124,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = (updatedUser) => {
     setUser((prev) => {
       const nextUser = { ...prev, ...updatedUser };
-      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(nextUser));
+      localDbSaveUserInfo(nextUser).catch(() => {});
       return nextUser;
     });
   };

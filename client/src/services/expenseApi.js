@@ -11,6 +11,10 @@ import {
   localDbSetKV,
   localDbGetKV,
   localDbUpdateSyncQueueItem,
+  localDbGetSplitParticipants,
+  localDbUpdateParticipant,
+  localDbGetDashboardCache,
+  localDbRecalculateDashboardCache,
 } from './localDb';
 import { syncManager } from './syncManager';
 import { getSpendingTotal } from './transactionUtils';
@@ -47,14 +51,13 @@ export const expenseApi = {
       if (month) queryParams.append('month', month);
       if (categoryId && categoryId !== 'all') queryParams.append('categoryId', categoryId);
       const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
-      const serverExpenses = await apiFetch(`/expenses${queryStr}`);
+      const serverExpenses = await apiFetch(`/expenses${queryStr}`, { timeoutMs: 3500 });
 
       if (Array.isArray(serverExpenses)) {
         // Save server expenses into local IndexedDB
         await localDbSaveExpenses(serverExpenses);
 
         // Merge any still-pending offline creations that haven't synced yet
-        const pendingQueue = await localDbGetSyncQueue();
         const pendingTempExpenses = localExpenses.filter((e) => e.syncStatus === 'pending');
 
         const merged = [...pendingTempExpenses, ...serverExpenses];
@@ -75,7 +78,7 @@ export const expenseApi = {
     // Try server first
     try {
       const queryStr = month ? `?month=${month}` : '';
-      const summary = await apiFetch(`/expenses/summary/monthly${queryStr}`);
+      const summary = await apiFetch(`/expenses/summary/monthly${queryStr}`, { timeoutMs: 3000 });
       if (summary) {
         localDbSetKV(cacheKey, summary);
         return summary;
@@ -107,7 +110,7 @@ export const expenseApi = {
     const local = await localDbGetExpenseById(id);
 
     try {
-      const serverData = await apiFetch(`/expenses/${id}`);
+      const serverData = await apiFetch(`/expenses/${id}`, { timeoutMs: 3500 });
       if (serverData) {
         await localDbSaveExpense({ ...serverData, syncStatus: 'synced' });
         return serverData;
@@ -118,6 +121,21 @@ export const expenseApi = {
     }
 
     return local;
+  },
+
+  // Get cached dashboard summary from localDB (instant, no network)
+  getDashboardCached: async () => {
+    try {
+      const cached = await localDbGetDashboardCache();
+      return cached || null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Recalculate dashboard totals from local expense data
+  recalculateDashboardCache: async () => {
+    return localDbRecalculateDashboardCache();
   },
 
   // Save expense immediately locally, then sync to server or enqueue
@@ -138,8 +156,27 @@ export const expenseApi = {
     merchantUpiId,
     externalTransactionReference,
     selectedPaymentApp,
+    isSplit = false,
+    participants = [],
   }) => {
     const tempId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Prepare participants with local IDs if split
+    const localParticipants = isSplit
+      ? participants.map((p, idx) => ({
+          _id: p._id || `part_${tempId}_${idx}`,
+          expenseId: tempId,
+          personName: p.personName,
+          participantUserId: p.participantUserId || null,
+          isCurrentUser: Boolean(p.isCurrentUser),
+          shareAmount: Number(p.shareAmount),
+          shareAmountPaise: Math.round(Number(p.shareAmount) * 100),
+          amountPaidBack: Number(p.amountPaidBack || 0),
+          amountPaidBackPaise: Math.round(Number(p.amountPaidBack || 0) * 100),
+          paymentStatus: p.paymentStatus || 'PENDING',
+          paymentHistory: p.paymentHistory || [],
+        }))
+      : [];
 
     const localExpense = {
       _id: tempId,
@@ -158,6 +195,8 @@ export const expenseApi = {
       date: date ? new Date(date).toISOString() : new Date().toISOString(),
       description: description || '',
       receiptUrl: receiptPreview || null,
+      isSplit: Boolean(isSplit),
+      participants: localParticipants,
       createdAt: new Date().toISOString(),
       syncStatus: 'pending',
     };
@@ -180,12 +219,14 @@ export const expenseApi = {
       merchantUpiId,
       externalTransactionReference,
       selectedPaymentApp,
+      isSplit: Boolean(isSplit),
+      participants: localParticipants,
       receiptDataUrl: receiptPreview || null,
       receiptName: receiptFile?.name || null,
     };
 
     // 2. Add to outbox queue
-    const queueItem = await localDbAddToSyncQueue({
+    await localDbAddToSyncQueue({
       type: 'CREATE',
       tempId,
       payload: queuePayload,
@@ -193,7 +234,7 @@ export const expenseApi = {
 
     syncManager.updatePendingCount();
 
-    // 3. Fire background sync attempt (will succeed if server is awake, or wait if Render is cold)
+    // 3. Fire background sync attempt
     syncManager.checkServerAndSync();
 
     return localExpense;
@@ -219,7 +260,7 @@ export const expenseApi = {
     // Try to find existing record in local DB first
     let existing = await localDbGetExpenseById(id);
 
-    // If not in local DB, try fetching from server so we have a base record
+    // If not in local DB, try fetching from server
     if (!existing) {
       try {
         const serverData = await apiFetch(`/expenses/${id}`);
@@ -232,10 +273,18 @@ export const expenseApi = {
       }
     }
 
-    // Optimistically update local DB only if we have a valid record with _id
+    // Optimistically update local DB
     let updatedExpense = existing;
     if (existing && existing._id) {
       const serverPayload = updatePayload;
+
+      let parsedParts = existing.participants;
+      if (serverPayload.participants) {
+        parsedParts = typeof serverPayload.participants === 'string'
+          ? JSON.parse(serverPayload.participants)
+          : serverPayload.participants;
+      }
+
       const updatedLocal = {
         ...existing,
         ...serverPayload,
@@ -245,7 +294,9 @@ export const expenseApi = {
           : {}),
         ...(serverPayload.removeReceipt ? { receiptUrl: null } : {}),
         ...(serverPayload.receiptDataUrl ? { receiptUrl: serverPayload.receiptDataUrl } : {}),
-        _id: existing._id, // ensure _id is always present (keyPath required)
+        ...(serverPayload.isSplit !== undefined ? { isSplit: serverPayload.isSplit === true || serverPayload.isSplit === 'true' } : {}),
+        ...(parsedParts ? { participants: parsedParts } : {}),
+        _id: existing._id,
         syncStatus: 'pending',
       };
       await localDbSaveExpense(updatedLocal);
@@ -296,5 +347,114 @@ export const expenseApi = {
     syncManager.checkServerAndSync();
 
     return { message: 'Expense deleted' };
+  },
+
+  // Get pending receivables
+  getPendingReceivables: async () => {
+    // 1. Try server first
+    try {
+      const data = await apiFetch('/expenses/split/pending-receivables', { timeoutMs: 3500 });
+      if (data && Array.isArray(data.receivables)) {
+        localDbSetKV('pending_receivables_cache', data);
+        return data;
+      }
+    } catch (err) {
+      console.warn('Server offline for pending receivables, falling back to local DB:', err.message);
+    }
+
+    // 2. Check KV cache
+    const cached = await localDbGetKV('pending_receivables_cache');
+    if (cached) return cached;
+
+    // 3. Fallback calculate from local IndexedDB
+    try {
+      const allExpenses = await localDbGetExpenses();
+      const allParticipants = await localDbGetSplitParticipants();
+
+      const expenseMap = new Map();
+      allExpenses.forEach((e) => expenseMap.set(String(e._id), e));
+
+      const validReceivables = [];
+      let totalOutstandingPaise = 0;
+
+      for (const p of allParticipants) {
+        if (p.isCurrentUser) continue;
+        const exp = expenseMap.get(String(p.expenseId));
+        if (!exp) continue;
+
+        const sharePaise = p.shareAmountPaise || Math.round(Number(p.shareAmount) * 100);
+        const paidPaise = p.amountPaidBackPaise || Math.round(Number(p.amountPaidBack || 0) * 100);
+        const outstandingPaise = sharePaise - paidPaise;
+
+        if (outstandingPaise > 0) {
+          totalOutstandingPaise += outstandingPaise;
+          validReceivables.push({
+            ...p,
+            expenseId: exp,
+            outstandingAmount: outstandingPaise / 100,
+            outstandingAmountPaise: outstandingPaise,
+          });
+        }
+      }
+
+      return {
+        totalReceivable: totalOutstandingPaise / 100,
+        totalReceivablePaise: totalOutstandingPaise,
+        receivables: validReceivables,
+      };
+    } catch (e) {
+      return { totalReceivable: 0, totalReceivablePaise: 0, receivables: [] };
+    }
+  },
+
+  // Record participant payment
+  recordParticipantPayment: async (participantId, amount, notes = '') => {
+    // Optimistically update local participant if found
+    try {
+      const allParticipants = await localDbGetSplitParticipants();
+      const p = allParticipants.find((item) => String(item._id) === String(participantId));
+      if (p) {
+        const sharePaise = p.shareAmountPaise || Math.round(Number(p.shareAmount) * 100);
+        const currentPaidPaise = p.amountPaidBackPaise || Math.round(Number(p.amountPaidBack || 0) * 100);
+        const payAmount = amount !== undefined ? Number(amount) : (sharePaise - currentPaidPaise) / 100;
+        const payPaise = Math.round(payAmount * 100);
+
+        const newPaidPaise = currentPaidPaise + payPaise;
+        p.amountPaidBackPaise = newPaidPaise;
+        p.amountPaidBack = newPaidPaise / 100;
+        p.paymentStatus = (newPaidPaise >= sharePaise) ? 'RECEIVED' : 'PARTIALLY_PAID';
+        if (!Array.isArray(p.paymentHistory)) p.paymentHistory = [];
+        p.paymentHistory.push({
+          amount: payAmount,
+          amountPaise: payPaise,
+          date: new Date().toISOString(),
+          notes,
+        });
+        await localDbUpdateParticipant(p);
+      }
+    } catch (e) {
+      console.warn('Optimistic local participant update error:', e);
+    }
+
+    // Try server call
+    try {
+      const res = await apiFetch(`/expenses/split/participants/${participantId}/pay`, {
+        method: 'POST',
+        body: JSON.stringify({ amount, notes }),
+      });
+      return res;
+    } catch (err) {
+      // If server is offline, add to sync queue
+      await localDbAddToSyncQueue({
+        type: 'RECORD_PAYMENT',
+        participantId,
+        payload: { amount, notes },
+      });
+      syncManager.updatePendingCount();
+      syncManager.checkServerAndSync();
+      return {
+        message: 'Payment recorded offline and will sync when connected',
+      };
+    }
   },
 };

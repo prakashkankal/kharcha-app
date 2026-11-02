@@ -1,5 +1,29 @@
 import mongoose from 'mongoose';
 
+const DEFAULT_NOTIFICATION_REMINDERS = [
+  { enabled: true, time: '12:00', message: 'Had your lunch? Log your expense on Kharcha' },
+  { enabled: true, time: '18:00', message: 'Have you added your afternoon expenses?' },
+  { enabled: true, time: '21:00', message: 'Dinner time! Record your food expenses on Kharcha' },
+];
+
+const notificationReminderSchema = new mongoose.Schema(
+  {
+    enabled: {
+      type: Boolean,
+      default: true,
+    },
+    time: {
+      type: String,
+      default: '21:00',
+    },
+    message: {
+      type: String,
+      default: 'Don\'t forget to add today\'s expenses in Kharcha!',
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -78,6 +102,28 @@ const userSchema = new mongoose.Schema(
       onboardingCompleted: {
         type: Boolean,
         default: true,
+      },
+      notifications: {
+        enabled: {
+          type: Boolean,
+          default: true,
+        },
+        time: {
+          type: String,
+          default: '21:00',
+        },
+        message: {
+          type: String,
+          default: 'Don\'t forget to add today\'s expenses in Kharcha!',
+        },
+        timezone: {
+          type: String,
+          default: 'Asia/Kolkata',
+        },
+        reminders: {
+          type: [notificationReminderSchema],
+          default: () => DEFAULT_NOTIFICATION_REMINDERS.map((reminder) => ({ ...reminder })),
+        },
       },
     },
   },

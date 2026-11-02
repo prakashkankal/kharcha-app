@@ -12,6 +12,8 @@ import { Profile } from './pages/Profile';
 import { Categories } from './pages/Categories';
 import { Analytics } from './pages/Analytics';
 import { Onboarding } from './pages/Onboarding';
+import { ExpenseReminders } from './pages/ExpenseReminders';
+import { NotificationPermission } from './pages/NotificationPermission';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { InstallPwaPrompt } from './components/InstallPwaPrompt';
 
@@ -34,6 +36,8 @@ export function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/expense/:id" element={<ExpenseDetails />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/reminders" element={<ExpenseReminders />} />
+          <Route path="/profile/reminders/permission" element={<NotificationPermission />} />
           <Route path="/categories" element={<Categories />} />
         </Route>
 
